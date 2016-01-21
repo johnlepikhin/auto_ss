@@ -19,4 +19,11 @@ Library pipeline_lwt
   FindlibParent: pipeline
   Install: false
   Modules: PipeLwt
-  BuildDepends: pipeline, lwt
+  BuildDepends: pipeline, lwt, lwt.unix
+
+Executable test_pipeShellLwt
+  Path: tests
+  Install: false
+  MainIs: test_pipeShellLwt.ml
+  BuildDepends: pipeline, pipeline.lwt
+
