@@ -1,0 +1,6 @@
+S src/**
+B _build/**
+PKG sexplib
+PKG lwt
+PKG pcre_superex
+PKG shell_escape

@@ -1,0 +1,22 @@
+OASISFormat: 0.4
+Name: security_scanner
+Version: 1.0
+License: BSD-3-clause
+Authors: Evgenii Lepikhin
+BuildTools: ocamlbuild
+Plugins: META (0.4), DevFiles (0.4)
+Synopsis: Security Scanner
+
+Library pipeline
+  Path: src/pipe
+  Install: false
+  Modules: Pipe, PipeShell
+  BuildDepends: shell_escape, pcre
+
+Library pipeline_lwt
+  Path: src/pipe
+  FindlibName: lwt
+  FindlibParent: pipeline
+  Install: false
+  Modules: PipeLwt
+  BuildDepends: pipeline, lwt
