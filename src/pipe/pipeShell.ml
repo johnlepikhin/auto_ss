@@ -1,11 +1,11 @@
 
-open Pipe
+open Pipe.Sig
 
 let file_of_string =
   let open Pcre in
   let rex = regexp "\t" in
   fun s ->
-    let fields = split ~rex s |> List.map ShellEscape.unescape_string in
+    let fields = split ~rex ~max:10000 s |> List.map ShellEscape.unescape_string in
     match fields with
     | file :: tail ->
       {

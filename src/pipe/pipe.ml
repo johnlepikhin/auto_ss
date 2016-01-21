@@ -1,17 +1,20 @@
 
-type file = {
-  file : string;
-  tail : string list;
-}
+module Sig =
+struct
+  type file = {
+    file : string;
+    tail : string list;
+  }
 
-type t =
-  | File of file
-  | Meta of string
+  type t =
+    | File of file
+    | Meta of string
+end
 
 module type PIPE =
 sig
-  val of_string: string -> t
-  val to_string: t -> string
+  val of_string: string -> Sig.t
+  val to_string: Sig.t -> string
 end
 
 module type IO =
@@ -30,6 +33,7 @@ end
 module Make (IO : IO) (P : PIPE) =
 struct
   open IO
+  include Sig
   
   let iter_input fn input_channel =
     let rec loop () =
