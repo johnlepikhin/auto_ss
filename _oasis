@@ -25,7 +25,7 @@ Library ast
   Path: src/ast
   Install: false
   Modules: AST, ASTRegexp, ASTOptimized
-  BuildDepends: pcre, pcre_superex
+  BuildDepends: pcre, pcre_superex, lwt
 
 Executable test_pipeShellLwt
   Path: tests
@@ -37,5 +37,5 @@ Executable test_ast
   Path: tests
   Install: false
   MainIs: test_ast.ml
-  BuildDepends: ast
+  BuildDepends: ast, lwt.unix
 

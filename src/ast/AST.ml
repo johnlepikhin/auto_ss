@@ -19,6 +19,7 @@ struct
     | True
     | False
     | Filemask of R.t list
+    | Bodymask of R.t list
 
   and t =
     | Notify of string

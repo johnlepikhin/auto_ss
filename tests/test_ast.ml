@@ -9,8 +9,11 @@ let ast =
 
 let optimized = ASTOptimized.of_ast ast
 
-let () =
+let main =
   let open ASTOptimized in
   let (context_info, optimized) = optimized in
   let filename = "test goodmask" in
   ASTOptimized.apply optimized context_info filename
+
+let () =
+  Lwt_main.run main
