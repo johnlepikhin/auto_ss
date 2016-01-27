@@ -27,9 +27,9 @@ struct
     | SetContext of C.t * t
 end
 
-module AST =
+module S =
   Make
     (struct type t = string end) (* source regexp *)
     (struct type t = string end) (* filename *)
 
-include AST
+include S
