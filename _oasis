@@ -27,6 +27,12 @@ Library ast
   Modules: AST, ASTRegexp, ASTOptimized
   BuildDepends: pcre, pcre_superex, lwt
 
+Library sl
+  Path: src/sl
+  Install: false
+  Modules: SlParser
+  BuildDepends: ast, sexplib
+
 Executable test_pipeShellLwt
   Path: tests
   Install: false
@@ -38,4 +44,10 @@ Executable test_ast
   Install: false
   MainIs: test_ast.ml
   BuildDepends: ast, lwt.unix
+
+Executable test_sl
+  Path: tests
+  Install: false
+  MainIs: test_sl.ml
+  BuildDepends: sl, lwt.unix
 
