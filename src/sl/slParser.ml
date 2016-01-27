@@ -26,6 +26,7 @@ let rec bool_to_ast t =
       | Atom (pos, _) ->
         error pos "'and' expects list argument"
     )
+
   | List (pos, [Atom (_, Type.Atom "or"); lst], _) -> (
       match lst with
       | List (pos, [], _) ->
@@ -36,11 +37,15 @@ let rec bool_to_ast t =
       | Atom (pos, _) ->
         error pos "'or' expects list argument"
     )
+
   | List (pos, [Atom (_, Type.Atom "not"); expr], _) ->
     let expr = bool_to_ast expr in
     AST.Not expr
+
   | Atom (pos, Type.Atom "true") -> AST.True
+
   | Atom (pos, Type.Atom "false") -> AST.False
+
   | List (pos, [Atom (_, Type.Atom "filemask"); lst], _) -> (
       match lst with
       | List (pos, [], _) ->
@@ -57,6 +62,7 @@ let rec bool_to_ast t =
       | Atom (pos, _) ->
         error pos "'filemask' expects list argument"
     )
+
   | List (pos, [Atom (_, Type.Atom "bodymask"); lst], _) -> (
       match lst with
       | List (pos, [], _) ->
@@ -73,6 +79,7 @@ let rec bool_to_ast t =
       | Atom (pos, _) ->
         error pos "'bodymask' expects list argument"
     )
+
   | List (pos, _, _)
   | Atom (pos, _) ->
     error pos "boolean argument expected"
@@ -80,19 +87,33 @@ let rec bool_to_ast t =
 and t_to_ast t =
   let open Sexp.Annotated in
   match t with
-  (* notify *)
+
   | List (pos, [Atom (_, Type.Atom "notify"); Atom (_, Type.Atom msg)], _) ->
     AST.Notify msg
-  (* if *)
+
   | List (pos, [Atom (_, Type.Atom "if"); expr; app], _) ->
     let expr = bool_to_ast expr in
     let app = t_to_ast app in
     AST.If (expr, app)
+
   | List (pos, [Atom (_, Type.Atom "set-context"); Atom (_, Type.Atom filename); app], _) ->
     let app = t_to_ast app in
     AST.SetContext (filename, app)
+
+  | List (pos, (Atom (_, Type.Atom "seq") :: lst), _) -> (
+      match lst with
+      | [] ->
+        error pos "'seq' cannot be empty"
+      | lst ->
+        let lst = List.map t_to_ast lst in
+        AST.Seq lst
+    )
+    
+
   | Atom (pos, Type.Atom name) ->
     error pos ("unexpected command: " ^ name)
   | Atom (pos, _)
+  | List (pos, [List _], _) ->
+    error pos "list found where expression expected"
   | List (pos, _, _) ->
     error pos "undefined expression"

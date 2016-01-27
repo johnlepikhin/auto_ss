@@ -136,6 +136,14 @@ let of_ast t =
       let (internal_context_info, app) = loop internal_context_info app in
       let internal_context_info = ContextInfo.compile internal_context_info in
       context_info, SetContext (internal_context_info, app)
+    | AST.Seq lst ->
+      let rec aux context_info rlst = function
+        | [] -> context_info, Seq rlst
+        | app :: tl ->
+          let (context_info, app) = loop context_info app in
+          aux context_info (app :: rlst) tl
+      in
+      aux context_info [] lst
   in
   let context_info = ContextInfo.init "" in
   let context_info, t = loop context_info t in
@@ -232,6 +240,8 @@ let apply t context_info filename =
     | SetContext (new_context_info, app) ->
       let new_context = Context.init new_context_info in
       loop new_context_info new_context app
+    | Seq lst ->
+      Lwt_list.iter_s (loop context_info context) lst
   in
   let context_info = ContextInfo.updateFile context_info filename in
   let context = Context.init context_info in

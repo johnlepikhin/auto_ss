@@ -1,6 +1,13 @@
 
 let sl = "
-(if (filemask (\"goodmask\")) (notify \"test message\"))"
+(seq
+  (if (filemask (\"goodmask\")) (notify \"test message1\"))
+  (if (filemask (\"goodmask\")) (notify \"test message2\"))
+  (if (filemask (\"goodmask\")) (notify \"test message3\"))
+  (if (filemask (\"goodmask\")) (notify \"test message4\"))
+  (if (filemask (\"goodmask\")) (notify \"test message5\"))
+  (if (filemask (\"goodmask\")) (notify \"test message6\"))
+)"
 
 let ast =
   let sl = SlParser.of_string sl in

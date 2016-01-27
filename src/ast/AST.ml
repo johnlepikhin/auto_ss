@@ -25,6 +25,7 @@ struct
     | Notify of string
     | If of t_bool * t
     | SetContext of C.t * t
+    | Seq of t list
 end
 
 module S =
