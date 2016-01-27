@@ -48,3 +48,12 @@ let rec to_annotated = function
     } in
     let lst = List.map to_annotated lst in
     Sexp.Annotated.List (range, lst, t)
+
+let rec to_sexp = function
+  | Atom (_, Sexp.Atom t) ->
+    Sexp.Atom t
+  | Atom (_, _) ->
+    raise Exit
+  | List (_, lst, _) ->
+    let lst = List.map to_sexp lst in
+    Sexp.List lst
