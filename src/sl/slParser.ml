@@ -3,18 +3,24 @@ open Sexplib
 
 type t = Sexp.Annotated.t
 
-let of_string s =
+let of_string domain s =
   Sexp.Annotated.of_string s
+  |> SexpLoc.of_annotated domain
 
-exception SyntaxError of Sexp.Annotated.range * string * string
+exception SyntaxError of SexpLoc.range * string * string
 
-let error pos msg =
-  let open Sexp.Annotated in
-  let s = Printf.sprintf "%s at line %i, pos %i\n" msg pos.start_pos.line pos.start_pos.col in
-  raise (SyntaxError (pos, msg, s))
+let error range msg =
+  let open SexpLoc in
+  let s = Printf.sprintf "%s at line %i, pos %i in %s\n"
+      msg
+      range.start_pos.Sexp.Annotated.line
+      range.start_pos.Sexp.Annotated.col
+      (string_of_domain range.domain)
+  in
+  raise (SyntaxError (range, msg, s))
 
 let rec bool_to_ast t =
-  let open Sexp.Annotated in
+  let open SexpLoc in
   match t with
   | List (pos, (Atom (_, Type.Atom "and") :: lst), _) -> (
       match lst with
@@ -78,7 +84,7 @@ let rec bool_to_ast t =
     error pos "boolean argument expected"
   
 and t_to_ast t =
-  let open Sexp.Annotated in
+  let open SexpLoc in
   match t with
 
   | List (pos, [Atom (_, Type.Atom "notify"); Atom (_, Type.Atom msg)], _) ->

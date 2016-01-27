@@ -14,6 +14,9 @@ type t =
   | Atom of range * Type.t
   | List of range * t list * Type.t
 
+let string_of_domain = function
+  | File s -> "file " ^ s
+
 let rec of_annotated domain = function
   | Sexp.Annotated.Atom (range, t) ->
     let range = {

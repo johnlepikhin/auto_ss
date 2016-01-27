@@ -9,8 +9,10 @@ let sl = "
   (if (bodymask \"goodbody\") (notify \"test message6\"))
 )"
 
+let domain = SexpLoc.File "/some/config"
+
 let ast =
-  let sl = SlParser.of_string sl in
+  let sl = SlParser.of_string domain sl in
   SlParser.t_to_ast sl
 
 let optimized = ASTOptimized.of_ast ast
