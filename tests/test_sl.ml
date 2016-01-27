@@ -6,7 +6,7 @@ let sl = "
   (if (filemask \"goodmask\") (notify \"test message3\"))
   (if (filemask \"goodmask\") (notify \"test message4\"))
   (if (filemask \"goodmask\") (notify \"test message5\"))
-  (if (filemask \"goodmask\") (notify \"test message6\"))
+  (if (bodymask \"goodbody\") (notify \"test message6\"))
 )"
 
 let ast =
@@ -18,7 +18,7 @@ let optimized = ASTOptimized.of_ast ast
 let main =
   let open ASTOptimized in
   let (context_info, optimized) = optimized in
-  let filename = "test goodmask" in
+  let filename = "tests/matchedfile" in
   ASTOptimized.apply optimized context_info filename
 
 let () =

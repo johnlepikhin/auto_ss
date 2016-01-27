@@ -112,7 +112,7 @@ and of_ast_bodymask context_info lst =
          context_info, (rex :: rlst)
       ) (context_info, []) lst
   in
-  (context_info, Filemask lst)
+  (context_info, Bodymask lst)
 
 and of_ast_bool context_info = function
   | AST.And l -> of_ast_and context_info l
