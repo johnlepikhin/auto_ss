@@ -25,12 +25,12 @@ Library ast
   Path: src/ast
   Install: false
   Modules: AST, ASTRegexp, ASTOptimized
-  BuildDepends: pcre, pcre_superex
+  BuildDepends: pcre, pcre_superex, unix
 
 Library sl
   Path: src/sl
   Install: false
-  Modules: SlParser, SexpLoc
+  Modules: SlParser, SlMacro, SexpLoc
   BuildDepends: ast, sexplib
 
 Executable test_pipeShellLwt
