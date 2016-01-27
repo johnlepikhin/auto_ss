@@ -6,6 +6,7 @@ type t = Sexp.Annotated.t
 let of_string domain s =
   Sexp.Annotated.of_string s
   |> SexpLoc.of_annotated domain
+  |> SlMacro.replace
 
 exception SyntaxError of SexpLoc.range * string * string
 

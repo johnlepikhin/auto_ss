@@ -63,7 +63,6 @@ struct
             ASTRegexp.apply context_info.ContextInfo.superex_filename filename);
       bodymask_result =
         Lazy.from_fun (fun () ->
-            let open Lwt in
             let body = Lazy.force body in
             match body with
             | None -> Superex.GroupsSet.empty
