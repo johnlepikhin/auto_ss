@@ -30,7 +30,7 @@ Library ast
 Library sl
   Path: src/sl
   Install: false
-  Modules: SlParser
+  Modules: SlParser, SexpLoc
   BuildDepends: ast, sexplib
 
 Executable test_pipeShellLwt
