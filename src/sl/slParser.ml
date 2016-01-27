@@ -16,28 +16,24 @@ let error pos msg =
 let rec bool_to_ast t =
   let open Sexp.Annotated in
   match t with
-  | List (pos, [Atom (_, Type.Atom "and"); lst], _) -> (
+  | List (pos, (Atom (_, Type.Atom "and") :: lst), _) -> (
       match lst with
-      | List (pos, [], _) ->
-        error pos "'and' expects non-empty list argument"
-      | List (pos, lst, _) ->
+      | [] ->
+        error pos "'and' cannot be empty"
+      | lst ->
         let lst = List.map bool_to_ast lst |> List.rev in
         AST.And lst
-      | Atom (pos, _) ->
-        error pos "'and' expects list argument"
     )
 
-  | List (pos, [Atom (_, Type.Atom "or"); lst], _) -> (
+  | List (pos, (Atom (_, Type.Atom "or") :: lst), _) -> (
       match lst with
-      | List (pos, [], _) ->
-        error pos "'or' expects non-empty list argument"
-      | List (pos, lst, _) ->
+      | [] ->
+        error pos "'or' cannot be empty"
+      | lst ->
         let lst = List.map bool_to_ast lst |> List.rev in
         AST.Or lst
-      | Atom (pos, _) ->
-        error pos "'or' expects list argument"
     )
-
+    
   | List (pos, [Atom (_, Type.Atom "not"); expr], _) ->
     let expr = bool_to_ast expr in
     AST.Not expr
@@ -46,11 +42,12 @@ let rec bool_to_ast t =
 
   | Atom (pos, Type.Atom "false") -> AST.False
 
-  | List (pos, [Atom (_, Type.Atom "filemask"); lst], _) -> (
+
+  | List (pos, (Atom (_, Type.Atom "filemask") :: lst), _) -> (
       match lst with
-      | List (pos, [], _) ->
-        error pos "'filemask' expects non-empty list argument"
-      | List (pos, lst, _) ->
+      | [] ->
+        error pos "'filemask' cannot be empty"
+      | lst ->
         let lst = List.map
             (function
               | Atom (pos, Type.Atom mask) -> mask
@@ -59,15 +56,13 @@ let rec bool_to_ast t =
             ) lst |> List.rev
         in
         AST.Filemask lst
-      | Atom (pos, _) ->
-        error pos "'filemask' expects list argument"
     )
 
-  | List (pos, [Atom (_, Type.Atom "bodymask"); lst], _) -> (
+  | List (pos, (Atom (_, Type.Atom "bodymask") :: lst), _) -> (
       match lst with
-      | List (pos, [], _) ->
-        error pos "'bodymask' expects non-empty list argument"
-      | List (pos, lst, _) ->
+      | [] ->
+        error pos "'bodymask' cannot be empty"
+      | lst ->
         let lst = List.map
             (function
               | Atom (pos, Type.Atom mask) -> mask
@@ -76,8 +71,6 @@ let rec bool_to_ast t =
             ) lst |> List.rev
         in
         AST.Bodymask lst
-      | Atom (pos, _) ->
-        error pos "'bodymask' expects list argument"
     )
 
   | List (pos, _, _)
