@@ -21,10 +21,10 @@ Library pipeline_lwt
   Modules: PipeLwt
   BuildDepends: pipeline, lwt, lwt.unix
 
-Library sl
-  Path: src/sl
+Library ast
+  Path: src/ast
   Install: false
-  Modules: Sl, SlRegexp
+  Modules: AST, ASTRegexp, ASTOptimized
   BuildDepends: pcre, pcre_superex
 
 Executable test_pipeShellLwt
@@ -33,9 +33,9 @@ Executable test_pipeShellLwt
   MainIs: test_pipeShellLwt.ml
   BuildDepends: pipeline, pipeline.lwt
 
-Executable test_sl
+Executable test_ast
   Path: tests
   Install: false
-  MainIs: test_sl.ml
-  BuildDepends: sl
+  MainIs: test_ast.ml
+  BuildDepends: ast
 
