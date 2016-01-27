@@ -20,6 +20,3 @@ let main =
   let (context_info, optimized) = optimized in
   let filename = "tests/matchedfile" in
   ASTOptimized.apply optimized context_info filename
-
-let () =
-  Lwt_main.run main

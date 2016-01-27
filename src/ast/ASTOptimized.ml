@@ -1,6 +1,4 @@
 
-open Lwt
-
 module ContextInfo =
 struct
   type t = {
@@ -28,15 +26,31 @@ module Context =
 struct
   type t = {
     filename : string;
-    body : string Lwt.t lazy_t;
+    body : string option lazy_t;
     filemask_result : Superex.GroupsSet.t lazy_t;
-    bodymask_result : Superex.GroupsSet.t Lwt.t lazy_t;
+    bodymask_result : Superex.GroupsSet.t lazy_t;
   }
 
   let readfile filename =
-    Lazy.from_fun (fun () ->
-        Lwt_io.(with_file ~mode:input filename (read ~count:(1024*1024)))
-      )
+    let aux () =
+      let open Unix.LargeFile in
+      try
+        let stat = stat filename in
+        let readsize = min 409600L stat.st_size |> Int64.to_int in
+        let buf = Buffer.create readsize in
+        let ch = open_in filename in
+        try
+          Buffer.add_channel buf ch readsize;
+          close_in ch;
+          Some (Buffer.contents buf)
+        with
+        | _ ->
+          close_in ch;
+          None
+      with
+      | _ -> None
+    in
+    Lazy.from_fun aux
 
   let init context_info =
     let filename = context_info.ContextInfo.filename in
@@ -50,10 +64,11 @@ struct
       bodymask_result =
         Lazy.from_fun (fun () ->
             let open Lwt in
-            Lazy.force body
-            >>= fun body ->
-            let r = ASTRegexp.apply context_info.ContextInfo.superex_body body in
-            return r
+            let body = Lazy.force body in
+            match body with
+            | None -> Superex.GroupsSet.empty
+            | Some body ->
+              ASTRegexp.apply context_info.ContextInfo.superex_body body
           );
     }
 end
@@ -156,49 +171,46 @@ let apply_notify context_info context s =
   Printf.printf "context_info.filename=%s  context.filename=%s  : %s\n"
     context_info.ContextInfo.filename
     context.Context.filename
-    s;
-  return ()
+    s
 
 let rec apply_and context_info context lst =
   let rec loop = function
     | [] ->
-      return true
+      true
     | hd :: tl ->
-      apply_bool context_info context hd
-      >>= fun r ->
+      let r = apply_bool context_info context hd in
       if r then
         loop tl
       else
-        return false
+        false
   in
   loop lst
 
 and apply_or context_info context lst =
   let rec loop = function
     | [] ->
-      return false
+      false
     | hd :: tl ->
-      apply_bool context_info context hd
-      >>= fun r ->
+      let r = apply_bool context_info context hd in
       if r then
-        return true
+        true
       else
         loop tl
   in
   loop lst
 
 and apply_not context_info context expr =
-  apply_bool context_info context expr
-  >>= fun r -> return (not r)
+  let r = apply_bool context_info context expr in
+  not r
 
 and apply_filemask context_info context lst =
   let rec loop = function
     | [] ->
-      return false
+      false
     | regexp :: tl ->
       let result = Lazy.force context.Context.filemask_result in
       if ASTRegexp.matches regexp result then
-        return true
+        true
       else
         loop tl
   in
@@ -207,12 +219,11 @@ and apply_filemask context_info context lst =
 and apply_bodymask context_info context lst =
   let rec loop = function
     | [] ->
-      return false
+      false
     | regexp :: tl ->
-      Lazy.force context.Context.bodymask_result
-      >>= fun result ->
+      let result = Lazy.force context.Context.bodymask_result in
       if ASTRegexp.matches regexp result then
-        return true
+        true
       else
         loop tl
   in
@@ -222,8 +233,8 @@ and apply_bool context_info context = function
   | And lst -> apply_and context_info context lst
   | Or lst -> apply_or context_info context lst
   | Not expr -> apply_not context_info context expr
-  | True -> return true
-  | False -> return false
+  | True -> true
+  | False -> false
   | Filemask lst -> apply_filemask context_info context lst
   | Bodymask lst -> apply_bodymask context_info context lst
 
@@ -231,17 +242,14 @@ let apply t context_info filename =
   let rec loop context_info context = function
     | Notify s -> apply_notify context_info context s
     | If (expr, app) ->
-      apply_bool context_info context expr
-      >>= fun r ->
+      let r = apply_bool context_info context expr in
       if r then
         loop context_info context app
-      else
-        return ()
     | SetContext (new_context_info, app) ->
       let new_context = Context.init new_context_info in
       loop new_context_info new_context app
     | Seq lst ->
-      Lwt_list.iter_s (loop context_info context) lst
+      List.iter (loop context_info context) lst
   in
   let context_info = ContextInfo.updateFile context_info filename in
   let context = Context.init context_info in

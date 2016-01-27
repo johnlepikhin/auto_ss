@@ -25,7 +25,7 @@ Library ast
   Path: src/ast
   Install: false
   Modules: AST, ASTRegexp, ASTOptimized
-  BuildDepends: pcre, pcre_superex, lwt
+  BuildDepends: pcre, pcre_superex
 
 Library sl
   Path: src/sl
@@ -43,11 +43,11 @@ Executable test_ast
   Path: tests
   Install: false
   MainIs: test_ast.ml
-  BuildDepends: ast, lwt.unix
+  BuildDepends: ast
 
 Executable test_sl
   Path: tests
   Install: false
   MainIs: test_sl.ml
-  BuildDepends: sl, lwt.unix
+  BuildDepends: sl
 
