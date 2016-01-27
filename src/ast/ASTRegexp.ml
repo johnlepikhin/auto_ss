@@ -1,6 +1,7 @@
 
 
 module M = Map.Make (struct type t = int let compare = compare end)
+module RevM = Map.Make (struct type t = string let compare = compare end)
 
 type regexp = {
   rex : string;
@@ -10,6 +11,7 @@ type regexp = {
 type smap = {
   last_id : int;
   map : regexp M.t;
+  revmap : int RevM.t;
   superex : Pcre.regexp;
 }
 
@@ -19,22 +21,29 @@ type result = Superex.GroupsSet.t
 let initial = {
   last_id = -1;
   map = M.empty;
+  revmap = RevM.empty;
   superex = Pcre.regexp "";
 }
 
 (* Add new regexp to set *)
 let register ~rex smap =
-  let last_id = smap.last_id + 1 in
-  let regexp = {
-    rex;
-    id = last_id;
-  } in
-  let smap = {
-    smap with
-    last_id;
-    map = M.add last_id regexp smap.map;
-  } in
-  smap, regexp
+  try
+    let id = RevM.find rex smap.revmap in
+    smap, { rex; id }
+  with
+  | _ ->
+    let last_id = smap.last_id + 1 in
+    let regexp = {
+      rex;
+      id = last_id;
+    } in
+    let smap = {
+      smap with
+      last_id;
+      map = M.add last_id regexp smap.map;
+      revmap = RevM.add rex last_id smap.revmap;
+    } in
+    smap, regexp
 
 (* Compile superex, make set appliable *)
 let compile smap =
