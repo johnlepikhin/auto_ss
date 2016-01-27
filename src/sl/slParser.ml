@@ -21,7 +21,7 @@ let rec bool_to_ast t =
       | List (pos, [], _) ->
         error pos "'and' expects non-empty list argument"
       | List (pos, lst, _) ->
-        let lst = List.map bool_to_ast lst in
+        let lst = List.map bool_to_ast lst |> List.rev in
         AST.And lst
       | Atom (pos, _) ->
         error pos "'and' expects list argument"
@@ -32,7 +32,7 @@ let rec bool_to_ast t =
       | List (pos, [], _) ->
         error pos "'or' expects non-empty list argument"
       | List (pos, lst, _) ->
-        let lst = List.map bool_to_ast lst in
+        let lst = List.map bool_to_ast lst |> List.rev in
         AST.Or lst
       | Atom (pos, _) ->
         error pos "'or' expects list argument"
@@ -56,7 +56,7 @@ let rec bool_to_ast t =
               | Atom (pos, Type.Atom mask) -> mask
               | List (pos, _, _)
               | Atom (pos, _) -> error pos "'filemask' expects strings list argument"
-            ) lst
+            ) lst |> List.rev
         in
         AST.Filemask lst
       | Atom (pos, _) ->
@@ -73,7 +73,7 @@ let rec bool_to_ast t =
               | Atom (pos, Type.Atom mask) -> mask
               | List (pos, _, _)
               | Atom (pos, _) -> error pos "'bodymask' expects strings list argument"
-            ) lst
+            ) lst |> List.rev
         in
         AST.Bodymask lst
       | Atom (pos, _) ->
@@ -105,7 +105,7 @@ and t_to_ast t =
       | [] ->
         error pos "'seq' cannot be empty"
       | lst ->
-        let lst = List.map t_to_ast lst in
+        let lst = List.map t_to_ast lst |> List.rev in
         AST.Seq lst
     )
     
