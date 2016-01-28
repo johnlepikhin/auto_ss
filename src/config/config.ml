@@ -22,13 +22,13 @@ let concat lst =
   let open SexpLoc in
   let open Sexplib in
   let seqContent = function
-    | List (_, (Atom (_, Type.Atom "seq") :: content)) -> content
+    | List (_, (Atom (_, "seq") :: content)) -> content
     | other -> [other]
   in
   List.map seqContent lst
   |> List.concat
   |> fun content ->
-  List (virtualRange, Atom (virtualRange, Type.Atom "seq") :: content)
+  List (virtualRange, Atom (virtualRange, "seq") :: content)
 
 let get =
   let splitRex = Pcre.regexp ":" in

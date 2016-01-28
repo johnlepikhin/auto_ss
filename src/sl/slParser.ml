@@ -28,8 +28,7 @@ let pcre_flag_of_c range = function
   | c -> error range (Printf.sprintf "Unknown pcre flag: %s" c)
 
 let pcre_flag_of_ast = function
-  | SexpLoc.Atom (range, Sexplib.Type.Atom flag) -> pcre_flag_of_c range flag
-  | SexpLoc.Atom (range, _)
+  | SexpLoc.Atom (range, flag) -> pcre_flag_of_c range flag
   | SexpLoc.List (range, _) ->
     error range "PCRE flag expected"
 
@@ -42,7 +41,7 @@ let pcre_flags_of_ast = function
 let rec bool_to_ast t =
   let open SexpLoc in
   match t with
-  | List (pos, (Atom (_, Type.Atom "and") :: lst)) -> (
+  | List (pos, (Atom (_, "and") :: lst)) -> (
       match lst with
       | [] ->
         error pos "'and' cannot be empty"
@@ -51,7 +50,7 @@ let rec bool_to_ast t =
         AST.And lst
     )
 
-  | List (pos, (Atom (_, Type.Atom "or") :: lst)) -> (
+  | List (pos, (Atom (_, "or") :: lst)) -> (
       match lst with
       | [] ->
         error pos "'or' cannot be empty"
@@ -60,16 +59,16 @@ let rec bool_to_ast t =
         AST.Or lst
     )
     
-  | List (pos, [Atom (_, Type.Atom "not"); expr]) ->
+  | List (pos, [Atom (_, "not"); expr]) ->
     let expr = bool_to_ast expr in
     AST.Not expr
 
-  | Atom (pos, Type.Atom "true") -> AST.True
+  | Atom (pos, "true") -> AST.True
 
-  | Atom (pos, Type.Atom "false") -> AST.False
+  | Atom (pos, "false") -> AST.False
 
 
-  | List (pos, (Atom (_, Type.Atom "filemask") :: flags :: lst)) -> (
+  | List (pos, (Atom (_, "filemask") :: flags :: lst)) -> (
       let flags = pcre_flags_of_ast flags in
       match lst with
       | [] ->
@@ -77,15 +76,14 @@ let rec bool_to_ast t =
       | lst ->
         let lst = List.map
             (function
-              | Atom (pos, Type.Atom mask) -> mask
-              | List (pos, _)
-              | Atom (pos, _) -> error pos "'filemask' expects strings list argument"
+              | Atom (pos, mask) -> mask
+              | List (pos, _) -> error pos "'filemask' expects strings list argument"
             ) lst |> List.rev
         in
         AST.Filemask (flags, lst)
     )
 
-  | List (pos, (Atom (_, Type.Atom "bodymask") :: flags :: lst)) -> (
+  | List (pos, (Atom (_, "bodymask") :: flags :: lst)) -> (
       let flags = pcre_flags_of_ast flags in
       match lst with
       | [] ->
@@ -93,9 +91,8 @@ let rec bool_to_ast t =
       | lst ->
         let lst = List.map
             (function
-              | Atom (pos, Type.Atom mask) -> mask
-              | List (pos, _)
-              | Atom (pos, _) -> error pos "'bodymask' expects strings list argument"
+              | Atom (pos, mask) -> mask
+              | List (pos, _) -> error pos "'bodymask' expects strings list argument"
             ) lst |> List.rev
         in
         AST.Bodymask (flags, lst)
@@ -109,19 +106,19 @@ and t_to_ast t =
   let open SexpLoc in
   match t with
 
-  | List (pos, [Atom (_, Type.Atom "notify"); Atom (_, Type.Atom msg)]) ->
+  | List (pos, [Atom (_, "notify"); Atom (_, msg)]) ->
     AST.Notify msg
 
-  | List (pos, [Atom (_, Type.Atom "if"); expr; app]) ->
+  | List (pos, [Atom (_, "if"); expr; app]) ->
     let expr = bool_to_ast expr in
     let app = t_to_ast app in
     AST.If (expr, app)
 
-  | List (pos, [Atom (_, Type.Atom "set-context"); Atom (_, Type.Atom filename); app]) ->
+  | List (pos, [Atom (_, "set-context"); Atom (_, filename); app]) ->
     let app = t_to_ast app in
     AST.SetContext (filename, app)
 
-  | List (pos, (Atom (_, Type.Atom "seq") :: lst)) -> (
+  | List (pos, (Atom (_, "seq") :: lst)) -> (
       match lst with
       | [] ->
         error pos "'seq' cannot be empty"
@@ -131,9 +128,8 @@ and t_to_ast t =
     )
     
 
-  | Atom (pos, Type.Atom name) ->
+  | Atom (pos, name) ->
     error pos ("unexpected command: " ^ name)
-  | Atom (pos, _)
   | List (pos, [List _]) ->
     error pos "list found where expression expected"
   | List (pos, _) ->

@@ -15,16 +15,16 @@ let replaceIconv sl =
   let open Sexplib in
   let rec aux = function
     | List (range, [
-        Atom (_, Type.Atom "iconv");
-        Atom (_, Type.Atom src);
-        Atom (_, Type.Atom dst);
+        Atom (_, "iconv");
+        Atom (_, src);
+        Atom (_, dst);
         body
       ]) -> (
         match aux body with
-        | Atom (_, Type.Atom body) -> (
+        | Atom (_, body) -> (
             try
               let newstring = Iconv.convert src dst body in
-              Atom (range, Type.Atom newstring)
+              Atom (range, newstring)
             with
             | e -> SlParser.error range (Printexc.to_string e)
           )
@@ -42,7 +42,7 @@ let expandMacroArgs body args argsMap =
   let open SexpLoc in
   let open Sexplib in
   let rec aux = function
-    | (Atom (range, Type.Atom name)) as atom ->
+    | (Atom (range, name)) as atom ->
       let newval =
         try
           ArgsM.find name argsMap
@@ -51,7 +51,6 @@ let expandMacroArgs body args argsMap =
         | Not_found -> atom
       in
       newval
-    | (Atom _) as atom -> atom
     | List (v1, lst) ->
       let lst = List.map aux lst in
       List (v1, lst)
@@ -60,10 +59,9 @@ let expandMacroArgs body args argsMap =
 
 let rec makeArgsMap map n = function
   | [] -> map
-  | SexpLoc.Atom (range, Sexplib.Type.Atom argname) :: tl ->
+  | SexpLoc.Atom (range, argname) :: tl ->
     let map = ArgsM.add argname n map in
     makeArgsMap map (n+1) tl
-  | SexpLoc.Atom (range, _) :: _
   | SexpLoc.List (range, _) :: _ ->
     SlParser.error range "arguments must be atoms (list of strings)"
 
@@ -72,7 +70,7 @@ let replace sl =
   let open Sexplib in
   let rec aux context = function
     | [] -> []
-    | (Atom (range, Type.Atom name)) as atom :: tl ->
+    | (Atom (range, name)) as atom :: tl ->
       let newval =
         try
           let macro = M.find name context in
@@ -85,8 +83,8 @@ let replace sl =
       in
       newval :: aux context tl
     | (List (_, [
-        Atom (_, Type.Atom "defmacro");
-        Atom (_, Type.Atom name);
+        Atom (_, "defmacro");
+        Atom (_, name);
         List (_, args);
         body
       ])) :: tl ->
@@ -100,7 +98,7 @@ let replace sl =
       let context = M.add name macro context in
       aux context tl
 
-    | (List (range, ((Atom (_, Type.Atom name) :: args) as list))) :: tl ->
+    | (List (range, ((Atom (_, name) :: args) as list))) :: tl ->
       let newval =
         try
           let macro = M.find name context in
@@ -117,8 +115,6 @@ let replace sl =
     | List (v1, lst) :: tl ->
       let lst = aux context lst in
       List (v1, lst) :: aux context tl
-    | (Atom _) as atom :: tl ->
-      atom :: aux context tl
   in
   let sl = match aux M.empty [sl] with
     | [sl] -> sl
