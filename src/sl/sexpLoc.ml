@@ -57,3 +57,9 @@ let rec to_sexp = function
   | List (_, lst, _) ->
     let lst = List.map to_sexp lst in
     Sexp.List lst
+
+let to_string t =
+  to_sexp t |> Sexp.to_string_hum
+
+let print t =
+  to_string t |> print_endline
