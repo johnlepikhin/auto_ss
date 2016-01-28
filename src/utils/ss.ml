@@ -95,6 +95,13 @@ KNOWN OPTIONS
 
 module Pipeline = PipeLwt.Make (PipeShell)
 
+module Evaluator = ASTOptimized.MakeEvaluator (
+  struct
+    let notify context_info context s =
+      let open ASTOptimized in
+      Pipeline.output Lwt_io.stdout Pipe.Sig.(File { file = context_info.ContextInfo.filename; tail = [s] })
+  end)
+
 let main () =
   let open Lwt in
   Config.get !configReaders
@@ -104,8 +111,7 @@ let main () =
   Pipeline.iter_input
     (function
       | File { file; tail } ->
-        ASTOptimized.apply optimized context_info file;
-        return ()
+        Evaluator.apply optimized context_info file
       | other ->
         Pipeline.output Lwt_io.stdout other
     ) Lwt_io.stdin
