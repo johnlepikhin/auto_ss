@@ -3,6 +3,7 @@ open Sexplib
 
 type domain =
   | File of string
+  | Root
 
 type range = {
   domain : domain;
@@ -16,6 +17,7 @@ type t =
 
 let string_of_domain = function
   | File s -> "file " ^ s
+  | Root -> "root of tree"
 
 let rec of_annotated domain = function
   | Sexp.Annotated.Atom (range, t) ->
