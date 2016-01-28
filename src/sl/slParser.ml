@@ -119,12 +119,8 @@ and t_to_ast t =
     AST.SetContext (filename, app)
 
   | List (pos, (Atom (_, "seq") :: lst)) -> (
-      match lst with
-      | [] ->
-        error pos "'seq' cannot be empty"
-      | lst ->
-        let lst = List.map t_to_ast lst |> List.rev in
-        AST.Seq lst
+      let lst = List.map t_to_ast lst |> List.rev in
+      AST.Seq lst
     )
     
 
