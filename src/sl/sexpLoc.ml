@@ -3,6 +3,7 @@ open Sexplib
 
 type domain =
   | File of string
+  | Argument
   | Root
 
 type range = {
@@ -17,6 +18,7 @@ type t =
 
 let string_of_domain = function
   | File s -> "file " ^ s
+  | Argument -> "command line argument"
   | Root -> "root of tree"
 
 let rec of_annotated domain = function
