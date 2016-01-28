@@ -31,7 +31,7 @@ Library sl
   Path: src/sl
   Install: false
   Modules: SlParser, SlMacro, SexpLoc
-  BuildDepends: ast, sexplib
+  BuildDepends: ast, sexplib, iconv
 
 Executable test_pipeShellLwt
   Path: tests

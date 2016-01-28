@@ -10,6 +10,34 @@ type macro = {
 
 type context = macro M.t
 
+let replaceIconv sl =
+  let open SexpLoc in
+  let open Sexplib in
+  let rec aux = function
+    | List (range, [
+        Atom (_, Type.Atom "iconv");
+        Atom (_, Type.Atom src);
+        Atom (_, Type.Atom dst);
+        body
+      ], v2) -> (
+        match aux body with
+        | Atom (_, Type.Atom body) -> (
+            try
+              let newstring = Iconv.convert src dst body in
+              Atom (range, Type.Atom newstring)
+            with
+            | e -> SlParser.error range (Printexc.to_string e)
+          )
+        | _ ->
+          SlParser.error range "cannot expand third argument into string"
+      )
+    | List (v1, lst, v2) ->
+      let lst = List.map aux lst in
+      List (v1, lst, v2)
+    | other -> other
+  in
+  aux sl
+
 let expandMacroArgs body args argsMap =
   let open SexpLoc in
   let open Sexplib in
@@ -65,13 +93,13 @@ let replace sl =
       let argsMap = makeArgsMap ArgsM.empty 0 args in
       let body =
         match aux context [body] with
-        | [sl] ->
-          sl
+        | [sl] -> sl
         | _ -> body
       in
       let macro = { body; argsMap; argsCount = List.length args } in
       let context = M.add name macro context in
       aux context tl
+
     | (List (range, ((Atom (_, Type.Atom name) :: args) as list), v2)) :: tl ->
       let newval =
         try
@@ -92,6 +120,9 @@ let replace sl =
     | (Atom _) as atom :: tl ->
       atom :: aux context tl
   in
-  match aux M.empty [sl] with
-  | [sl] -> sl
-  | _ -> sl
+  let sl = match aux M.empty [sl] with
+    | [sl] -> sl
+    | _ -> sl
+  in
+  replaceIconv sl
+

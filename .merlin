@@ -5,3 +5,4 @@ PKG lwt
 PKG lwt.unix
 PKG pcre_superex
 PKG shell_escape
+PKG iconv

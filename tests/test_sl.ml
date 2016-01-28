@@ -1,9 +1,13 @@
 
 let sl = "
 (seq
-  (defmacro ifm (mask) (filemask (i) mask))
+  (defmacro uconv (dst string) (iconv UTF-8 dst string))
+  (defmacro rusmask (regexp)
+    (or (bodymask () regexp (uconv cp1251 regexp) (uconv koi8-r regexp))))
+  (defmacro irusmask (regexp)
+    (or (bodymask (i) regexp (uconv cp1251 regexp) (uconv koi8-r regexp))))
 
-  (if (ifm MATCH) (notify \"test message1\"))
+  (if (rusmask маска) (notify \"Совпадение в одной из кодировок\"))
   (if (filemask () \"goodmask\") (notify \"test message2\"))
   (if (filemask () \"goodmask\") (notify \"test message3\"))
   (if (filemask () \"goodmask\") (notify \"test message4\"))
