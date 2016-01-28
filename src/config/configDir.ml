@@ -9,15 +9,15 @@ struct
     let rec read () =
       try
         let name = readdir dh in
-        if name = "." || name = ".." then
-          read ()
-        else
+        if String.length name > 0 && name.[0] <> '.' then
           let path = Filename.concat dir name in
           let st = stat path in
           if st.st_kind = S_REG then
             path :: read ()
           else
             read ()
+        else
+          read ()
       with
       | _ -> []
     in
