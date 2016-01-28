@@ -33,6 +33,12 @@ Library sl
   Modules: SlParser, SlMacro, SexpLoc
   BuildDepends: ast, sexplib, iconv
 
+Library config
+  Path: src/config
+  Install: false
+  Modules: Config_sig, Config, ConfigFile
+  BuildDepends: sexplib, lwt, unix, sl
+
 Executable test_pipeShellLwt
   Path: tests
   Install: false
