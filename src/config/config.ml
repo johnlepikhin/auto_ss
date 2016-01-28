@@ -13,7 +13,7 @@ let virtualRange =
       offset = 0;
     } in
   {
-    domain = Root;
+    domain = Virtual;
     start_pos = pos;
     end_pos = pos;
   }
