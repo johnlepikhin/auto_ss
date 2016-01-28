@@ -1,5 +1,11 @@
 
-module M : Config_sig.CONFIGREADER =
+module M :
+sig
+  include Config_sig.CONFIGREADER
+            
+  val _get: string -> string list -> (SexpLoc.domain * string) list Lwt.t
+end
+=
 struct
   let identifier = "slfile"
 
@@ -22,10 +28,10 @@ struct
         None
     with
     | _ -> None
-  
-  let get params =
+
+  let _get identifier params =
     if params = [] then
-      raise (failwith "Config reader 'slfile' requires at least one argument")
+      raise (failwith (Printf.sprintf "Config reader '%s' requires at least one argument" identifier))
     else
       List.map (fun fname -> fname, readfile fname) params
       |> List.map (fun (fname, content) ->
@@ -34,6 +40,8 @@ struct
           | Some content -> SexpLoc.File fname, content
         )
       |> Lwt.return
+  
+  let get params = _get identifier params
 end
 
 include M

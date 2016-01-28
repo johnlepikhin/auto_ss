@@ -1,6 +1,7 @@
 
 let readers : (module Config_sig.CONFIGREADER) list = [
   (module ConfigFile);
+  (module ConfigDir);
   (module ConfigArg);
 ]
 

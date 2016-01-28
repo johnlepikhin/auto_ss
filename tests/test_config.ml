@@ -2,7 +2,7 @@
 open Lwt
 
 let configs = [
-  "slfile:tests/slconfig1.cl:tests/slconfig2.cl";
+  "sldir:configs";
   "slarg"
 ]
 

@@ -36,7 +36,7 @@ Library sl
 Library config
   Path: src/config
   Install: false
-  Modules: Config_sig, Config, ConfigFile, ConfigArg
+  Modules: Config_sig, Config, ConfigFile, ConfigDir, ConfigArg
   BuildDepends: sexplib, lwt, unix, sl
 
 Executable test_pipeShellLwt
