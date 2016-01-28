@@ -19,7 +19,7 @@ let replaceIconv sl =
         Atom (_, Type.Atom src);
         Atom (_, Type.Atom dst);
         body
-      ], v2) -> (
+      ]) -> (
         match aux body with
         | Atom (_, Type.Atom body) -> (
             try
@@ -31,9 +31,9 @@ let replaceIconv sl =
         | _ ->
           SlParser.error range "cannot expand third argument into string"
       )
-    | List (v1, lst, v2) ->
+    | List (v1, lst) ->
       let lst = List.map aux lst in
-      List (v1, lst, v2)
+      List (v1, lst)
     | other -> other
   in
   aux sl
@@ -52,9 +52,9 @@ let expandMacroArgs body args argsMap =
       in
       newval
     | (Atom _) as atom -> atom
-    | List (v1, lst, v2) ->
+    | List (v1, lst) ->
       let lst = List.map aux lst in
-      List (v1, lst, v2)
+      List (v1, lst)
   in
   aux body
 
@@ -64,7 +64,7 @@ let rec makeArgsMap map n = function
     let map = ArgsM.add argname n map in
     makeArgsMap map (n+1) tl
   | SexpLoc.Atom (range, _) :: _
-  | SexpLoc.List (range, _, _) :: _ ->
+  | SexpLoc.List (range, _) :: _ ->
     SlParser.error range "arguments must be atoms (list of strings)"
 
 let replace sl =
@@ -87,9 +87,9 @@ let replace sl =
     | (List (_, [
         Atom (_, Type.Atom "defmacro");
         Atom (_, Type.Atom name);
-        List (_, args, _);
+        List (_, args);
         body
-      ], _)) :: tl ->
+      ])) :: tl ->
       let argsMap = makeArgsMap ArgsM.empty 0 args in
       let body =
         match aux context [body] with
@@ -100,7 +100,7 @@ let replace sl =
       let context = M.add name macro context in
       aux context tl
 
-    | (List (range, ((Atom (_, Type.Atom name) :: args) as list), v2)) :: tl ->
+    | (List (range, ((Atom (_, Type.Atom name) :: args) as list))) :: tl ->
       let newval =
         try
           let macro = M.find name context in
@@ -111,12 +111,12 @@ let replace sl =
         with
         | Not_found ->
           let list = aux context list in
-          List (range, list, v2)
+          List (range, list)
       in
       newval :: aux context tl
-    | List (v1, lst, v2) :: tl ->
+    | List (v1, lst) :: tl ->
       let lst = aux context lst in
-      List (v1, lst, v2) :: aux context tl
+      List (v1, lst) :: aux context tl
     | (Atom _) as atom :: tl ->
       atom :: aux context tl
   in

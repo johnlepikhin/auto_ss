@@ -14,7 +14,7 @@ type range = {
 
 type t =
   | Atom of range * Type.t
-  | List of range * t list * Type.t
+  | List of range * t list
 
 let string_of_domain = function
   | File s -> "file " ^ s
@@ -29,36 +29,21 @@ let rec of_annotated domain = function
       end_pos = range.Sexp.Annotated.end_pos;
     } in
     Atom (range, t)
-  | Sexp.Annotated.List (range, lst, t) ->
+  | Sexp.Annotated.List (range, lst, _) ->
     let range = {
       domain;
       start_pos = range.Sexp.Annotated.start_pos;
       end_pos = range.Sexp.Annotated.end_pos;
     } in
     let lst = List.map (of_annotated domain) lst in
-    List (range, lst, t)
+    List (range, lst)
     
-let rec to_annotated = function
-  | Atom (range, t) ->
-    let range = {
-      Sexp.Annotated.start_pos = range.start_pos;
-      Sexp.Annotated.end_pos = range.end_pos;
-    } in
-    Sexp.Annotated.Atom (range, t)
-  | List (range, lst, t) ->
-    let range = {
-      Sexp.Annotated.start_pos = range.start_pos;
-      Sexp.Annotated.end_pos = range.end_pos;
-    } in
-    let lst = List.map to_annotated lst in
-    Sexp.Annotated.List (range, lst, t)
-
 let rec to_sexp = function
   | Atom (_, Sexp.Atom t) ->
     Sexp.Atom t
   | Atom (_, _) ->
     raise Exit
-  | List (_, lst, _) ->
+  | List (_, lst) ->
     let lst = List.map to_sexp lst in
     Sexp.List lst
 
