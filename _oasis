@@ -63,3 +63,10 @@ Executable test_config
   MainIs: test_config.ml
   BuildDepends: lwt, lwt.unix, config
 
+Executable ss
+  Path: src/utils
+  Install: false
+  CompiledObject: best
+  MainIs: ss.ml
+  BuildDepends: config, sl, lwt, lwt.unix, pipeline.lwt
+
