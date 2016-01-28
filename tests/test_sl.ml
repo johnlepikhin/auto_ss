@@ -1,8 +1,9 @@
 
 let sl = "
 (seq
-  (defmacro fm1 () (filemask \"match\"))
-  (defmacro fm () fm1)
+  (defmacro fm1 (mask) (filemask mask))
+  (defmacro fm () (fm1 match))
+
   (if fm (notify \"test message1\"))
   (if (filemask \"goodmask\") (notify \"test message2\"))
   (if (filemask \"goodmask\") (notify \"test message3\"))
@@ -15,6 +16,7 @@ let domain = SexpLoc.File "/some/config"
 
 let ast =
   let sl = SlParser.of_string domain sl in
+  let sl = SlMacro.replace sl in
   SlParser.t_to_ast sl
 
 let optimized = ASTOptimized.of_ast ast
