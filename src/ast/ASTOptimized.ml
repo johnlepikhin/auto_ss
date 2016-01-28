@@ -100,33 +100,33 @@ and of_ast_not context_info expr =
   let (context_info, expr) = of_ast_bool context_info expr in
   (context_info, Not expr)
 
-and of_ast_filemask context_info lst =
+and of_ast_filemask context_info flags lst =
   let (context_info, lst) =
     List.fold_left
       (fun (context_info, rlst) rex ->
          let open ContextInfo in
          let (superex_filename, rex) =
-           ASTRegexp.register ~rex context_info.superex_filename
+           ASTRegexp.register ~rex:(rex, flags) context_info.superex_filename
          in
          let context_info = { context_info with superex_filename } in
          context_info, (rex :: rlst)
       ) (context_info, []) lst
   in
-  (context_info, Filemask lst)
+  (context_info, Filemask (flags, lst))
 
-and of_ast_bodymask context_info lst =
+and of_ast_bodymask context_info flags lst =
   let (context_info, lst) =
     List.fold_left
       (fun (context_info, rlst) rex ->
          let open ContextInfo in
          let (superex_body, rex) =
-           ASTRegexp.register ~rex context_info.superex_body
+           ASTRegexp.register ~rex:(rex, flags) context_info.superex_body
          in
          let context_info = { context_info with superex_body } in
          context_info, (rex :: rlst)
       ) (context_info, []) lst
   in
-  (context_info, Bodymask lst)
+  (context_info, Bodymask (flags, lst))
 
 and of_ast_bool context_info = function
   | AST.And l -> of_ast_and context_info l
@@ -134,8 +134,8 @@ and of_ast_bool context_info = function
   | AST.Not expr ->  of_ast_not context_info expr
   | AST.True -> context_info, True
   | AST.False -> context_info, False
-  | AST.Filemask l -> of_ast_filemask context_info l
-  | AST.Bodymask l -> of_ast_bodymask context_info l
+  | AST.Filemask (flags, l) -> of_ast_filemask context_info flags l
+  | AST.Bodymask (flags, l) -> of_ast_bodymask context_info flags l
 
 let of_ast t =
   let rec loop context_info (t : AST.t) : (ContextInfo.t * t) =
@@ -202,7 +202,7 @@ and apply_not context_info context expr =
   let r = apply_bool context_info context expr in
   not r
 
-and apply_filemask context_info context lst =
+and apply_filemask context_info context flags lst =
   let rec loop = function
     | [] ->
       false
@@ -215,7 +215,7 @@ and apply_filemask context_info context lst =
   in
   loop lst
 
-and apply_bodymask context_info context lst =
+and apply_bodymask context_info context flags lst =
   let rec loop = function
     | [] ->
       false
@@ -234,8 +234,8 @@ and apply_bool context_info context = function
   | Not expr -> apply_not context_info context expr
   | True -> true
   | False -> false
-  | Filemask lst -> apply_filemask context_info context lst
-  | Bodymask lst -> apply_bodymask context_info context lst
+  | Filemask (flags, lst) -> apply_filemask context_info context flags lst
+  | Bodymask (flags, lst) -> apply_bodymask context_info context flags lst
 
 let apply t context_info filename =
   let rec loop context_info context = function

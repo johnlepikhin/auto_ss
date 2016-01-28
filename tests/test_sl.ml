@@ -1,15 +1,14 @@
 
 let sl = "
 (seq
-  (defmacro fm1 (mask) (filemask mask))
-  (defmacro fm () (fm1 match))
+  (defmacro ifm (mask) (filemask (i) mask))
 
-  (if fm (notify \"test message1\"))
-  (if (filemask \"goodmask\") (notify \"test message2\"))
-  (if (filemask \"goodmask\") (notify \"test message3\"))
-  (if (filemask \"goodmask\") (notify \"test message4\"))
-  (if (filemask \"goodmask\") (notify \"test message5\"))
-  (if (bodymask \"goodbody\") (notify \"test message6\"))
+  (if (ifm MATCH) (notify \"test message1\"))
+  (if (filemask () \"goodmask\") (notify \"test message2\"))
+  (if (filemask () \"goodmask\") (notify \"test message3\"))
+  (if (filemask () \"goodmask\") (notify \"test message4\"))
+  (if (filemask () \"goodmask\") (notify \"test message5\"))
+  (if (bodymask () \"goodbody\") (notify \"test message6\"))
 )"
 
 let domain = SexpLoc.File "/some/config"

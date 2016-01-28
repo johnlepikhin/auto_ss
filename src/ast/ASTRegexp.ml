@@ -1,10 +1,11 @@
 
 
 module M = Map.Make (struct type t = int let compare = compare end)
-module RevM = Map.Make (struct type t = string let compare = compare end)
+module RevM = Map.Make (struct type t = string * Pcre.cflag list let compare = compare end)
 
 type regexp = {
   rex : string;
+  flags : Pcre.cflag list;
   id : int;
 }
 
@@ -29,27 +30,30 @@ let initial = {
 let register ~rex smap =
   try
     let id = RevM.find rex smap.revmap in
-    smap, { rex; id }
+    let (rex, flags) = rex in
+    smap, { rex; flags; id }
   with
   | _ ->
     let last_id = smap.last_id + 1 in
+    let (rex, flags) = rex in
     let regexp = {
       rex;
+      flags;
       id = last_id;
     } in
     let smap = {
       smap with
       last_id;
       map = M.add last_id regexp smap.map;
-      revmap = RevM.add rex last_id smap.revmap;
+      revmap = RevM.add (rex, flags) last_id smap.revmap;
     } in
     smap, regexp
 
-(* Compile superex, make set appliable *)
+(* Compile superex, make set applicable *)
 let compile smap =
   let superex =
     M.bindings smap.map
-    |> List.map (fun (key, regexp) -> regexp.rex)
+    |> List.map (fun (key, regexp) -> (regexp.flags, regexp.rex))
     |> Superex.superex
   in
   { smap with superex }

@@ -1,10 +1,10 @@
 
 let ast =
   let open AST in
-  If (Filemask ["goodmask1"; "goodmask"],
+  If (Filemask ([`CASELESS], ["Goodmask1"; "Goodmask"]),
       (SetContext
          ("otherfile",
-          (If (Filemask ["other"],
+          (If (Filemask ([], ["other"]),
            Notify "OK")))))
 
 let optimized = ASTOptimized.of_ast ast

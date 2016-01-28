@@ -19,6 +19,26 @@ let error range msg =
   in
   raise (SyntaxError (range, msg, s))
 
+let pcre_flag_of_c range = function
+  | "i" -> `CASELESS
+  | "m" -> `MULTILINE
+  | "s" -> `DOTALL
+  | "x" -> `EXTENDED
+  | "u" -> `UTF8
+  | c -> error range (Printf.sprintf "Unknown pcre flag: %s" c)
+
+let pcre_flag_of_ast = function
+  | SexpLoc.Atom (range, Sexplib.Type.Atom flag) -> pcre_flag_of_c range flag
+  | SexpLoc.Atom (range, _)
+  | SexpLoc.List (range, _, _) ->
+    error range "PCRE flag expected"
+
+let pcre_flags_of_ast = function
+  | SexpLoc.List (range, flags, _) ->
+    List.map pcre_flag_of_ast flags
+  | SexpLoc.Atom (range, _) ->
+    error range "PCRE flags list expected (or empty list: '()')"
+
 let rec bool_to_ast t =
   let open SexpLoc in
   match t with
@@ -49,7 +69,8 @@ let rec bool_to_ast t =
   | Atom (pos, Type.Atom "false") -> AST.False
 
 
-  | List (pos, (Atom (_, Type.Atom "filemask") :: lst), _) -> (
+  | List (pos, (Atom (_, Type.Atom "filemask") :: flags :: lst), _) -> (
+      let flags = pcre_flags_of_ast flags in
       match lst with
       | [] ->
         error pos "'filemask' cannot be empty"
@@ -61,10 +82,11 @@ let rec bool_to_ast t =
               | Atom (pos, _) -> error pos "'filemask' expects strings list argument"
             ) lst |> List.rev
         in
-        AST.Filemask lst
+        AST.Filemask (flags, lst)
     )
 
-  | List (pos, (Atom (_, Type.Atom "bodymask") :: lst), _) -> (
+  | List (pos, (Atom (_, Type.Atom "bodymask") :: flags :: lst), _) -> (
+      let flags = pcre_flags_of_ast flags in
       match lst with
       | [] ->
         error pos "'bodymask' cannot be empty"
@@ -76,7 +98,7 @@ let rec bool_to_ast t =
               | Atom (pos, _) -> error pos "'bodymask' expects strings list argument"
             ) lst |> List.rev
         in
-        AST.Bodymask lst
+        AST.Bodymask (flags, lst)
     )
 
   | List (pos, _, _)

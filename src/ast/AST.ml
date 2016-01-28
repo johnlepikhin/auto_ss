@@ -1,3 +1,4 @@
+
 module type Regexp =
 sig
   type t
@@ -11,6 +12,7 @@ end
 module Make (R : Regexp) (C : ContextInfo) =
 struct
   type t_context = C.t
+
   
   type t_bool =
     | And of t_bool list
@@ -18,8 +20,8 @@ struct
     | Not of t_bool
     | True
     | False
-    | Filemask of R.t list
-    | Bodymask of R.t list
+    | Filemask of Pcre.cflag list * R.t list
+    | Bodymask of Pcre.cflag list * R.t list
 
   and t =
     | Notify of string
