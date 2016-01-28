@@ -60,6 +60,6 @@ let get =
       |> SlMacro.replace
       |> SlMacro.replaceIconv
       |> SlParser.t_to_ast
-      |> ASTOptimized.of_ast
+      |> ASTOptimized.Parser.of_ast
     in
     return tree

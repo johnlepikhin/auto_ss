@@ -22,10 +22,9 @@ let ast =
   let sl = SlMacro.replace sl in
   SlParser.t_to_ast sl
 
-let optimized = ASTOptimized.of_ast ast
+let optimized = ASTOptimized.Parser.of_ast ast
 
 let main =
-  let open ASTOptimized in
   let (context_info, optimized) = optimized in
   let filename = "tests/matchedfile" in
-  ASTOptimized.apply optimized context_info filename
+  ASTOptimized.Sample.apply optimized context_info filename
