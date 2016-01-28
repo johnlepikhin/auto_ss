@@ -172,7 +172,7 @@ end
 
 module type EXTERNAL =
 sig
-  val notify: ContextInfo.t -> Context.t -> string -> unit
+  val notify: ContextInfo.t -> Context.t -> string -> unit Lwt.t
 end
 
 module MakeEvaluator (E : EXTERNAL) =
@@ -249,11 +249,13 @@ struct
         let r = apply_bool context_info context expr in
         if r then
           loop context_info context app
+        else
+          Lwt.return ()
       | SetContext (new_context_info, app) ->
         let new_context = Context.init new_context_info in
         loop new_context_info new_context app
       | Seq lst ->
-        List.iter (loop context_info context) lst
+        Lwt_list.iter_s (loop context_info context) lst
     in
     let context_info = ContextInfo.updateFile context_info filename in
     let context = Context.init context_info in
@@ -266,7 +268,8 @@ struct
     Printf.printf "context_info.filename=%s  context.filename=%s  : %s\n"
       context_info.ContextInfo.filename
       context.Context.filename
-      s
+      s;
+    Lwt.return ()
 end
 
 module Sample = MakeEvaluator (SampleExternal)
