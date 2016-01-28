@@ -22,6 +22,12 @@ let replace sl =
         List (_, args, _);
         body
       ], _)) :: tl ->
+      let body =
+        let body = aux context [body] in
+        match body with
+        | [sl] -> sl
+        | _ -> sl
+      in
       let context = M.add name body context in
       aux context tl
     | List (v1, lst, v2) :: tl ->

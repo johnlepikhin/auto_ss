@@ -1,7 +1,8 @@
 
 let sl = "
 (seq
-  (defmacro fm () (filemask \"match\"))
+  (defmacro fm1 () (filemask \"match\"))
+  (defmacro fm () fm1)
   (if fm (notify \"test message1\"))
   (if (filemask \"goodmask\") (notify \"test message2\"))
   (if (filemask \"goodmask\") (notify \"test message3\"))
