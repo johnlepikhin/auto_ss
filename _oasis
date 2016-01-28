@@ -57,3 +57,9 @@ Executable test_sl
   MainIs: test_sl.ml
   BuildDepends: sl
 
+Executable test_config
+  Path: tests
+  Install: false
+  MainIs: test_config.ml
+  BuildDepends: lwt, lwt.unix, config
+
