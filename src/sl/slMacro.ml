@@ -82,21 +82,21 @@ let replace sl =
         | Not_found -> atom
       in
       newval :: aux context tl
-    | (List (_, [
-        Atom (_, "defmacro");
-        Atom (_, name);
-        List (_, args);
-        body
-      ])) :: tl ->
-      let argsMap = makeArgsMap ArgsM.empty 0 args in
-      let body =
-        match aux context [body] with
-        | [sl] -> sl
-        | _ -> body
-      in
-      let macro = { body; argsMap; argsCount = List.length args } in
-      let context = M.add name macro context in
-      aux context tl
+    | (List (range, Atom (_, "defmacro") :: defmacroargs)) :: tl -> (
+        match defmacroargs with
+        | [Atom (_, name); List (_, args); body] ->
+          let argsMap = makeArgsMap ArgsM.empty 0 args in
+          let body =
+            match aux context [body] with
+            | [sl] -> sl
+            | _ -> body
+          in
+          let macro = { body; argsMap; argsCount = List.length args } in
+          let context = M.add name macro context in
+          aux context tl
+        | _ ->
+          SlParser.error range "defmacro requires arguments: name (arguments) (body)"
+      )
 
     | (List (range, ((Atom (_, name) :: args) as list))) :: tl ->
       let newval =
