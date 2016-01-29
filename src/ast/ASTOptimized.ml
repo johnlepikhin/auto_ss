@@ -75,7 +75,7 @@ struct
         Lazy.from_fun (fun () ->
             let body = Lazy.force body in
             match body with
-            | None -> []
+            | None -> ASTRegexp.ResM.empty;
             | Some body ->
               ASTRegexp.apply context_info.ContextInfo.superex_body body
           );
