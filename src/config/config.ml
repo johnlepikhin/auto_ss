@@ -5,20 +5,6 @@ let readers : (module Config_sig.CONFIGREADER) list = [
   (module ConfigArg);
 ]
 
-let virtualRange =
-  let open SexpLoc in
-  let open Sexplib in
-  let pos = Sexp.Annotated.{
-      line = 0;
-      col = 0;
-      offset = 0;
-    } in
-  {
-    domain = Virtual;
-    start_pos = pos;
-    end_pos = pos;
-  }
-
 let concat lst =
   let open SexpLoc in
   let open Sexplib in

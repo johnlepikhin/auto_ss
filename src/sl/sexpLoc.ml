@@ -16,6 +16,18 @@ type t =
   | Atom of range * string
   | List of range * t list
 
+let virtualRange =
+  let pos = Sexp.Annotated.{
+      line = 0;
+      col = 0;
+      offset = 0;
+    } in
+  {
+    domain = Virtual;
+    start_pos = pos;
+    end_pos = pos;
+  }
+            
 let string_of_domain = function
   | File s -> "file " ^ s
   | Argument -> "command line argument"
