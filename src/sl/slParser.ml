@@ -38,6 +38,12 @@ let pcre_flags_of_ast = function
   | SexpLoc.Atom (range, _) ->
     error range "PCRE flags list expected (or empty list: '()')"
 
+let verifyRegexp range rex =
+  try
+    ignore (Pcre.regexp rex)
+  with
+  | _ -> error range (Printf.sprintf "Invalid regexp: %s" rex)
+
 let rec bool_to_ast t =
   let open SexpLoc in
   match t with
@@ -80,6 +86,7 @@ let rec bool_to_ast t =
               | List (pos, _) -> error pos "'filemask' expects strings list argument"
             ) lst |> List.rev
         in
+        List.iter (verifyRegexp pos) lst;
         AST.Filemask (flags, lst)
     )
 
@@ -95,6 +102,7 @@ let rec bool_to_ast t =
               | List (pos, _) -> error pos "'bodymask' expects strings list argument"
             ) lst |> List.rev
         in
+        List.iter (verifyRegexp pos) lst;
         AST.Bodymask (flags, lst)
     )
 
