@@ -64,3 +64,7 @@ let to_string t =
 
 let print t =
   to_string t |> print_endline
+
+let atom s = Atom (virtualRange, s)
+
+let list l = List (virtualRange, l)
