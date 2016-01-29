@@ -36,8 +36,8 @@ struct
   type t = {
     filename : string;
     body : string option lazy_t;
-    filemask_result : Superex.GroupsSet.t lazy_t;
-    bodymask_result : Superex.GroupsSet.t lazy_t;
+    filemask_result : ASTRegexp.result lazy_t;
+    bodymask_result : ASTRegexp.result lazy_t;
     ext : E.t;
   }
 
@@ -75,7 +75,7 @@ struct
         Lazy.from_fun (fun () ->
             let body = Lazy.force body in
             match body with
-            | None -> Superex.GroupsSet.empty
+            | None -> []
             | Some body ->
               ASTRegexp.apply context_info.ContextInfo.superex_body body
           );
