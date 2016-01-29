@@ -22,13 +22,23 @@ struct
   }
 end
 
-module Context =
+module type CONTEXT_EXT =
+sig
+  type t
+
+  val notify: ContextInfo.t -> t -> string -> unit Lwt.t
+end
+
+module MakeContext (E : CONTEXT_EXT) =
 struct
+  type ext = E.t
+
   type t = {
     filename : string;
     body : string option lazy_t;
     filemask_result : Superex.GroupsSet.t lazy_t;
     bodymask_result : Superex.GroupsSet.t lazy_t;
+    ext : E.t;
   }
 
   let readfile filename =
@@ -52,7 +62,7 @@ struct
     in
     Lazy.from_fun aux
 
-  let init context_info =
+  let init ext context_info =
     let filename = context_info.ContextInfo.filename in
     let body = readfile filename in
     {
@@ -69,7 +79,10 @@ struct
             | Some body ->
               ASTRegexp.apply context_info.ContextInfo.superex_body body
           );
+      ext;
     }
+
+  let notify = E.notify
 end
 
 
@@ -170,13 +183,10 @@ struct
 end
 
 
-module type EXTERNAL =
-sig
-  val notify: ContextInfo.t -> Context.t -> string -> unit Lwt.t
-end
-
-module MakeEvaluator (E : EXTERNAL) =
+module MakeEvaluator (C : CONTEXT_EXT) =
 struct
+  module C = MakeContext (C)
+  
   let rec apply_and context_info context lst =
     let rec loop = function
       | [] ->
@@ -212,7 +222,7 @@ struct
       | [] ->
         false
       | regexp :: tl ->
-        let result = Lazy.force context.Context.filemask_result in
+        let result = Lazy.force context.C.filemask_result in
         if ASTRegexp.matches regexp result then
           true
         else
@@ -225,7 +235,7 @@ struct
       | [] ->
         false
       | regexp :: tl ->
-        let result = Lazy.force context.Context.bodymask_result in
+        let result = Lazy.force context.C.bodymask_result in
         if ASTRegexp.matches regexp result then
           true
         else
@@ -242,9 +252,9 @@ struct
     | Filemask (flags, lst) -> apply_filemask context_info context flags lst
     | Bodymask (flags, lst) -> apply_bodymask context_info context flags lst
 
-  let apply t context_info filename =
+  let apply t context_info filename ext =
     let rec loop context_info context = function
-      | Notify s -> E.notify context_info context s
+      | Notify s -> C.notify context_info context.C.ext s
       | If (expr, app) ->
         let r = apply_bool context_info context expr in
         if r then
@@ -252,24 +262,24 @@ struct
         else
           Lwt.return ()
       | SetContext (new_context_info, app) ->
-        let new_context = Context.init new_context_info in
+        let new_context = C.init ext new_context_info in
         loop new_context_info new_context app
       | Seq lst ->
         Lwt_list.iter_s (loop context_info context) lst
     in
     let context_info = ContextInfo.updateFile context_info filename in
-    let context = Context.init context_info in
+    let context = C.init ext context_info in
     loop context_info context t
 end
 
-module SampleExternal : EXTERNAL =
+module Sample = MakeEvaluator (
 struct
+  type t = string
+  
   let notify context_info context s =
     Printf.printf "context_info.filename=%s  context.filename=%s  : %s\n"
       context_info.ContextInfo.filename
-      context.Context.filename
+      context
       s;
     Lwt.return ()
-end
-
-module Sample = MakeEvaluator (SampleExternal)
+end)

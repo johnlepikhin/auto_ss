@@ -13,4 +13,4 @@ let main =
   let open ASTOptimized.Sample in
   let (context_info, optimized) = optimized in
   let filename = "test goodmask" in
-  ASTOptimized.Sample.apply optimized context_info filename
+  ASTOptimized.Sample.apply optimized context_info filename filename

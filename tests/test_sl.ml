@@ -27,4 +27,4 @@ let optimized = ASTOptimized.Parser.of_ast ast
 let main =
   let (context_info, optimized) = optimized in
   let filename = "tests/matchedfile" in
-  ASTOptimized.Sample.apply optimized context_info filename
+  ASTOptimized.Sample.apply optimized context_info filename filename

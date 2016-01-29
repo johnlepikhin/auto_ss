@@ -97,9 +97,14 @@ module Pipeline = PipeLwt.Make (PipeShell)
 
 module Evaluator = ASTOptimized.MakeEvaluator (
   struct
-    let notify context_info context s =
+    type t = UtilPipe.file
+
+    let notify (context_info : ASTOptimized.ContextInfo.t) (context : t) alert =
       let open ASTOptimized in
-      Pipeline.output Lwt_io.stdout Pipe.Sig.(File { file = context_info.ContextInfo.filename; tail = [s] })
+      let file = UtilPipe.{ context with alert } in
+      let line = UtilPipe.(to_pipe (File file)) in
+      Pipeline.output Lwt_io.stdout line
+
   end)
 
 let main () =
@@ -109,11 +114,13 @@ let main () =
 
   let open Pipe.Sig in
   Pipeline.iter_input
-    (function
-      | File { file; tail } ->
-        Evaluator.apply optimized context_info file
-      | other ->
-        Pipeline.output Lwt_io.stdout other
+    (fun pipe ->
+       let utilpipe = UtilPipe.of_pipe pipe in
+       match utilpipe with
+       | UtilPipe.File file ->
+         Evaluator.apply optimized context_info file.UtilPipe.file file
+      | _ ->
+        Pipeline.output Lwt_io.stdout pipe
     ) Lwt_io.stdin
 
 let () =

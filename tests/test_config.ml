@@ -10,7 +10,7 @@ let main =
   Config.get configs
   >>= fun (context_info, optimized) ->
   let filename = "tests/matchedfile" in
-  ASTOptimized.Sample.apply optimized context_info filename
+  ASTOptimized.Sample.apply optimized context_info filename filename
   
 let () =
   Lwt_main.run main
