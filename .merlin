@@ -6,3 +6,5 @@ PKG lwt.unix
 PKG pcre_superex
 PKG shell_escape
 PKG iconv
+PKG xmlaccess
+PKG xml-light

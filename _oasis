@@ -70,3 +70,10 @@ Executable ss
   MainIs: ss.ml
   BuildDepends: config, sl, lwt, lwt.unix, pipeline.lwt
 
+Executable sl_of_manul
+  Path: src/utils
+  Install: false
+  CompiledObject: best
+  MainIs: sl_of_manul.ml
+  BuildDepends: sl, xmlaccess, xml-light
+
