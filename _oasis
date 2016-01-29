@@ -68,7 +68,7 @@ Executable ss
   Install: false
   CompiledObject: best
   MainIs: ss.ml
-  BuildDepends: config, sl, lwt, lwt.unix, pipeline.lwt
+  BuildDepends: config, lwt, lwt.unix, pipeline.lwt
 
 Executable sl_of_manul
   Path: src/utils
