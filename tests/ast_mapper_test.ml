@@ -1,2 +1,2 @@
 
-rusbodymask "какая-то строка";;
+rusbodymask "какая-то строка" "other" ;;

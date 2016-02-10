@@ -21,59 +21,70 @@ Library pipeline_lwt
   Modules: PipeLwt
   BuildDepends: pipeline, lwt, lwt.unix
 
-Library ast
-  Path: src/ast
-  Install: false
-  Modules: AST, ASTRegexp, ASTOptimized
-  BuildDepends: pcre, unix, lwt
+Library ss_script
+  Path: src/script
+  Modules: AstMapper, SSScript
+  BuildDepends: compiler-libs.bytecomp, compiler-libs.common, compiler-libs, pcre, iconv, ocaml_scripting
 
-Library sl
-  Path: src/sl
-  Install: false
-  Modules: SlParser, SlMacro, SexpLoc
-  BuildDepends: ast, sexplib, iconv
+#Library ast
+#  Path: src/ast
+#  Install: false
+#  Modules: AST, ASTRegexp, ASTOptimized
+#  BuildDepends: pcre, unix, lwt
 
-Library config
-  Path: src/config
-  Install: false
-  Modules: Config_sig, Config, ConfigFile, ConfigDir, ConfigArg
-  BuildDepends: sexplib, lwt, unix, sl
+#Library sl
+#  Path: src/sl
+#  Install: false
+#  Modules: SlParser, SlMacro, SexpLoc
+#  BuildDepends: ast, sexplib, iconv
 
-Executable test_pipeShellLwt
-  Path: tests
-  Install: false
-  MainIs: test_pipeShellLwt.ml
-  BuildDepends: pipeline, pipeline.lwt
+#Library config
+#  Path: src/config
+#  Install: false
+#  Modules: Config_sig, Config, ConfigFile, ConfigDir, ConfigArg
+#  BuildDepends: sexplib, lwt, unix, sl
 
-Executable test_ast
-  Path: tests
-  Install: false
-  MainIs: test_ast.ml
-  BuildDepends: ast
+#Executable test_pipeShellLwt
+#  Path: tests
+#  Install: false
+#  MainIs: test_pipeShellLwt.ml
+#  BuildDepends: pipeline, pipeline.lwt
 
-Executable test_sl
-  Path: tests
-  Install: false
-  MainIs: test_sl.ml
-  BuildDepends: sl
+#Executable test_ast
+#  Path: tests
+#  Install: false
+#  MainIs: test_ast.ml
+#  BuildDepends: ast
 
-Executable test_config
-  Path: tests
-  Install: false
-  MainIs: test_config.ml
-  BuildDepends: lwt, lwt.unix, config
+#Executable test_sl
+#  Path: tests
+#  Install: false
+#  MainIs: test_sl.ml
+#  BuildDepends: sl
 
-Executable ss
+#Executable test_config
+#  Path: tests
+#  Install: false
+#  MainIs: test_config.ml
+#  BuildDepends: lwt, lwt.unix, config
+
+Executable mapper_ppx
   Path: src/utils
   Install: false
-  CompiledObject: best
-  MainIs: ss.ml
-  BuildDepends: config, lwt, lwt.unix, pipeline.lwt
+  MainIs: mapper_ppx.ml
+  BuildDepends: ss_script, iconv
 
-Executable sl_of_manul
-  Path: src/utils
-  Install: false
-  CompiledObject: best
-  MainIs: sl_of_manul.ml
-  BuildDepends: sl, xmlaccess, xml-light
+#Executable ss
+#  Path: src/utils
+#  Install: false
+#  CompiledObject: best
+#  MainIs: ss.ml
+#  BuildDepends: config, lwt, lwt.unix, pipeline.lwt
+
+#Executable sl_of_manul
+#  Path: src/utils
+#  Install: false
+#  CompiledObject: best
+#  MainIs: sl_of_manul.ml
+#  BuildDepends: sl, xmlaccess, xml-light
 
