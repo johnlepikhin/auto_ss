@@ -62,6 +62,37 @@ let generator =
     incr id;
     !id
 
+let map_regexp ~register_regexp ~loc ~fname ~flags ~args () =
+  let id = generator () in
+  register_regexp ~id ~fname ~flags args;
+
+  let id = Exp.constant ~loc (Const_int id) in
+  let apply_name = Exp.ident ~loc (Location.mkloc (Lident ("match_" ^ fname)) loc) in
+  Exp.apply ~loc apply_name ["", id]
+
+let split_regexp_args ?flags ~loc ~fname = function
+  | []
+  | _ :: [] ->
+    loc_error
+      ~loc
+      (Printf.sprintf "%s usage: %s (flags) \"regexp1\" \"regexp2\" ..." fname fname)
+  | flags :: args ->
+    let flags = cflags_of_list flags in
+    flags, args
+
+let composition_of_list ~loc ~fn = function
+  | [] ->
+    loc_error ~loc "at least one expression expected"
+  | [hd] -> hd
+  | hd :: tl ->
+    List.fold_left (fun r elt ->
+        let fn = Exp.ident ~loc (Location.mkloc (Lident fn) loc) in
+        Exp.apply ~loc fn [
+          "", r;
+          "", elt;
+        ]
+      ) hd tl
+
 let my_mapper register_regexp =
   let expr_mapper mapper = function
     | {
@@ -69,49 +100,42 @@ let my_mapper register_regexp =
           pexp_desc = Pexp_ident {txt = Lident fname}
         }, args);
       pexp_loc = loc;
-    } when fname = "filemask" || fname = "bodymask"
-      ->
-      let flags, args =
-        match args with
-        | []
-        | _ :: [] -> loc_error ~loc (Printf.sprintf "%s usage: %s (flags) \"regexp1\" \"regexp2\" ..." fname fname)
-        | flags :: args ->
-          let flags = cflags_of_list flags in
-          flags, args
-      in
-      let args = strings_of_args fname args in
-      let id = generator () in
-      register_regexp ~id ~fname ~flags args;
-      
-      let id = Exp.constant ~loc (Const_int id) in
-      let apply_name = Exp.ident ~loc (Location.mkloc (Lident ("match_" ^ fname)) loc) in
-      Exp.apply ~loc apply_name ["", id]
+    } as x -> (
+        match fname with
+        | "filemask"
+        | "bodymask" ->
+          let flags, args = split_regexp_args ~loc ~fname args in
+          let args = strings_of_args fname args in
+          map_regexp ~register_regexp ~loc ~fname ~flags ~args ()
+        | "charsetbodymask" -> (
+          let args = strings_of_args fname args in
+          match args with
+          | src :: dst :: args ->
+            let args = List.map (Iconv.convert ~src ~dst) args in
+            map_regexp ~register_regexp ~loc ~fname:"bodymask" ~flags:[] ~args ()
+          | _ ->
+            loc_error ~loc (Printf.sprintf "%s usage: %s \"src-charset\" \"dst-charset\" \"regexp1\" \"regexp2\" ..." fname fname)
+          )
+        | "rusbodymask" ->
+          let args = strings_of_args fname args in
+          let exprlist =
+            List.map (fun dst ->
+                try
+                  let args = List.map (Iconv.convert ~src:"UTF-8" ~dst) args in
+                  map_regexp ~register_regexp ~loc ~fname:"bodymask" ~flags:[] ~args ()
+                with
+                | Failure _ ->
+                  loc_error ~loc (Printf.sprintf "Failed to iconv to charset %s" dst)
+              )
+              ["utf-8"; "cp1251"; "koi8-r"; "cp866"]
+          in
+          composition_of_list ~loc ~fn:"||" exprlist
+        | _ ->
+          default_mapper.expr mapper x
+      )
 
     | x -> default_mapper.expr mapper x;
   in
-  (*
-  let structure_mapper mapper items =
-    let items = List.map (fun v -> default_mapper.structure_item mapper v) items in
-
-    let make_rex = function
-      | RegisterRegexp { loc; fname; args; id } ->
-        let fname = Exp.ident (Location.mkloc (Lident ("register_regexp_" ^ fname)) loc) in
-        let args = List.map (fun v -> "", v) args in
-        let args = ("id", id) :: args in
-        let expr = Exp.apply fname args in
-        Vb.mk (Pat.any ~loc ()) expr
-    in
-    let my_bindings =
-      List.map make_rex !regexps
-      |> Str.value Nonrecursive
-    in
-
-    my_bindings :: items
-  in
-*)
   { Ast_mapper.default_mapper with
     expr = expr_mapper;
-    (*
-    structure = structure_mapper;
-*)
   }
