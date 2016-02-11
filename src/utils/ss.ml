@@ -95,6 +95,7 @@ KNOWN OPTIONS
 
 module Pipeline = PipeLwt.Make (PipeShell)
 
+(*
 module Evaluator = ASTOptimized.MakeEvaluator (
   struct
     type t = UtilPipe.file
@@ -106,11 +107,23 @@ module Evaluator = ASTOptimized.MakeEvaluator (
       Pipeline.output Lwt_io.stdout line
 
   end)
+*)
+
+let notify_cb fileinfo message =
+  Printf.printf "file %s : %s\n" fileinfo.SSScript.filename message
 
 let main () =
   let open Lwt in
+  (*
   Config.get !configReaders
   >>= fun (context_info, optimized) ->
+*)
+  let script = SSScript.prepare ~debug:true "
+
+rule \"Test\" (filemask (s i) \"PHP\" && rusbodymask \"match\");;
+
+"
+  in
 
   let open Pipe.Sig in
   Pipeline.iter_input
@@ -118,7 +131,9 @@ let main () =
        let utilpipe = UtilPipe.of_pipe pipe in
        match utilpipe with
        | UtilPipe.File file ->
-         Evaluator.apply optimized context_info file.UtilPipe.file file
+         let fileinfo = SSScript.fileinfo file.UtilPipe.file in
+         let () = SSScript.run ~debug:true ~notify_cb ~script fileinfo in
+         Lwt.return ()
       | _ ->
         Pipeline.output Lwt_io.stdout pipe
     ) Lwt_io.stdin

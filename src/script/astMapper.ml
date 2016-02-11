@@ -46,9 +46,11 @@ let cflag_of_ident =
     loc_error ~loc descr    
 
 let cflags_of_list = function
-  | (_, { pexp_desc = desc; pexp_loc = loc }) -> (
+  | (_, ({ pexp_desc = desc; pexp_loc = loc } as expr)) -> (
       match desc with
       | Pexp_construct (_, _) -> []
+      | Pexp_ident _ ->
+        [cflag_of_ident expr]
       | Pexp_apply (hd, tl) ->
         let tl = List.map (fun (_, v) -> v) tl in
         List.map cflag_of_ident (hd :: tl)
@@ -56,19 +58,12 @@ let cflags_of_list = function
         loc_error ~loc (Printf.sprintf "Empty list '()' or Pcre.cflags list expected: (i m ...). Available flags: %s" cflags_descr)
     )
 
-let generator =
-  let id = ref 0 in
-  fun () ->
-    incr id;
-    !id
-
 let map_regexp ~register_regexp ~loc ~fname ~flags ~args () =
-  let id = generator () in
-  register_regexp ~id ~fname ~flags args;
+  let id = register_regexp ~fname ~flags args in
 
   let id = Exp.constant ~loc (Const_int id) in
   let apply_name = Exp.ident ~loc (Location.mkloc (Lident ("match_" ^ fname)) loc) in
-  Exp.apply ~loc apply_name ["", id]
+  id, Exp.apply ~loc apply_name ["", id]
 
 let split_regexp_args ?flags ~loc ~fname = function
   | []
@@ -106,27 +101,39 @@ let my_mapper register_regexp =
         | "bodymask" ->
           let flags, args = split_regexp_args ~loc ~fname args in
           let args = strings_of_args fname args in
-          map_regexp ~register_regexp ~loc ~fname ~flags ~args ()
+          let (_, expr) = map_regexp ~register_regexp ~loc ~fname ~flags ~args () in
+          expr
         | "charsetbodymask" -> (
           let args = strings_of_args fname args in
           match args with
           | src :: dst :: args ->
             let args = List.map (Iconv.convert ~src ~dst) args in
-            map_regexp ~register_regexp ~loc ~fname:"bodymask" ~flags:[] ~args ()
+            let (_, expr) = map_regexp ~register_regexp ~loc ~fname:"bodymask" ~flags:[] ~args () in
+            expr
           | _ ->
             loc_error ~loc (Printf.sprintf "%s usage: %s \"src-charset\" \"dst-charset\" \"regexp1\" \"regexp2\" ..." fname fname)
           )
         | "rusbodymask" ->
           let args = strings_of_args fname args in
           let exprlist =
-            List.map (fun dst ->
+            let ids = ref [] in
+            List.fold_left (fun rlst dst ->
                 try
                   let args = List.map (Iconv.convert ~src:"UTF-8" ~dst) args in
-                  map_regexp ~register_regexp ~loc ~fname:"bodymask" ~flags:[] ~args ()
+                  let id, expr =
+                    map_regexp ~register_regexp ~loc ~fname:"bodymask" ~flags:[] ~args ()
+                  in
+                  if List.mem id !ids then
+                    rlst
+                  else (
+                    ids := id :: !ids;
+                    expr :: rlst
+                  )
                 with
                 | Failure _ ->
                   loc_error ~loc (Printf.sprintf "Failed to iconv to charset %s" dst)
               )
+              []
               ["utf-8"; "cp1251"; "koi8-r"; "cp866"]
           in
           composition_of_list ~loc ~fn:"||" exprlist
