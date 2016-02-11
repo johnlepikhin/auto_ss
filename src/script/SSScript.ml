@@ -57,7 +57,7 @@ let generator =
     incr id;
     !id
 
-let prepare ?debug script =
+let prepare ?debug sources =
   let empty name () =
     failwith (Printf.sprintf "SSScript %s() ccall implementation required!" name)
   in
@@ -68,7 +68,7 @@ let prepare ?debug script =
     ]
   in
 
-  let (world, env) =
+  let (world, initial_env) =
     ScriptExternal.world_of_externals external_fns
     |> ScriptHelpers.addBoolean
     |> ScriptHelpers.addComparsions
@@ -108,8 +108,11 @@ let prepare ?debug script =
   in
   let mapper = AstMapper.my_mapper register_regexp in
 
-  let source = ScriptParse.init ~env ~fileName:"main" ~moduleName:"Main" script in
-  let parsed = ScriptParse.parse ?debug ~mapper source in
+  let sources = List.map
+      (fun (fileName, script) -> ScriptParse.init ~fileName script)
+      sources
+  in
+  let parsed = ScriptParse.parse ?debug ~initial_env ~mapper ~moduleName:"Main" sources in
   let compiled = ScriptParse.compile ?debug parsed in
   let state = ScriptInterp.init ~world ~stackSize:16000 compiled.ScriptParse.instr in
   {

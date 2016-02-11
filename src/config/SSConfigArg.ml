@@ -1,15 +1,15 @@
 
-module M : Config_sig.CONFIGREADER =
+module M : SSConfig_sig.CONFIGREADER =
 struct
-  let identifier = "slarg"
+  let identifier = "arg"
 
   let get params =
     let folder (is_value, rlst) elt =
-      if elt = "--slarg" then
+      if elt = "--script" then
         (true, rlst)
       else
       if is_value then
-        (false, (SexpLoc.Argument, elt) :: rlst)
+        (false, (SSConfig_sig.Argument, elt) :: rlst)
       else
         (false, rlst)
     in

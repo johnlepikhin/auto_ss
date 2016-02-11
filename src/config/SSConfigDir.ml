@@ -1,5 +1,5 @@
 
-module M : Config_sig.CONFIGREADER =
+module M : SSConfig_sig.CONFIGREADER =
 struct
   let identifier = "sldir"
 
@@ -26,7 +26,7 @@ struct
   let get params =
     List.map readdir params
     |> List.concat
-    |> ConfigFile._get identifier
+    |> SSConfigFile._get identifier
 end
 
 include M

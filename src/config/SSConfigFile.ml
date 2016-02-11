@@ -1,9 +1,9 @@
 
 module M :
 sig
-  include Config_sig.CONFIGREADER
+  include SSConfig_sig.CONFIGREADER
             
-  val _get: string -> string list -> (SexpLoc.domain * string) list Lwt.t
+  val _get: string -> string list -> (SSConfig_sig.domain * string) list Lwt.t
 end
 =
 struct
@@ -37,7 +37,7 @@ struct
       |> List.map (fun (fname, content) ->
           match content with
           | None -> raise (failwith (Printf.sprintf "Failed to read slfile: %s" fname))
-          | Some content -> SexpLoc.File fname, content
+          | Some content -> SSConfig_sig.File fname, content
         )
       |> Lwt.return
   

@@ -1,94 +1,68 @@
 
 let configReaders = ref [
-  "slarg";
+  "arg";
 ]
 
 let args = Arg.[
     "-r", String (fun s -> configReaders := s :: !configReaders), "Add config new reader";
-    "--slarg", String (fun _ -> ()), "Pass additional rule";
+    "--script", String (fun _ -> ()), "Pass additional rule";
 ]
 
 let usage = "
 TYPICAL USAGE
 
-find /var/www -type f | ss --slarg '(if (bodymask () \"substring\") (notify \"file matches\"))'
+find /var/www -type f | ss --script 'rule \"Some issue\" (bodymask () \"substring1\" \"substring2\")'
 
 You can add more config sources with option -r. Option can be repeated. Possible values:
 
- * 'slfile:/path/to/file1:/path/to/file2:...'
+ * 'file:/path/to/file1:/path/to/file2:...'
 
 will sequentially read configs from specified files
 
- * 'sldir:/path/to/dir1:/path/to/file2:...'
+ * 'dir:/path/to/dir1:/path/to/file2:...'
 
 will sequentially read configs from files in specified directories.
 
 
 LANGUAGE DESRIPTION
 
-This is simplified variant of Lisp. All expressions are S-expressions.
+This is Ocaml with limited functions access and some DSL:
 
- * (seq v1 v2 v3 ...)
+ * rule \"Always matched rule\" true;;
 
-Concatenate expressions into one sequence.
+Rule witch will match on all files
 
- * (if EXPR APP)
+ * rule \"PHP files\" (filemask () \"php[345]?$\");;
 
-Apply APP if EXPR evaluates to true.
+Rule matching files which names matching regexp php[345]?$
 
- * \"true\" or \"false\"
+ * rule \"PHP files\" (filemask (i) \"php[345]?$\");;
 
-Returns boolean value respectively. Example: (if true ...)
+The same but case-less
 
- * (filemask FLAGS REGEXP)
+ * rule \"PHP files\" (bodymask () \"<html>\");;
 
-Checks if REGEXP matches with current file name. FLAGS are pcre regexp flags: i s m ...
+Rule matching files with bodies matching regexp \"<html>\"
 
-For example, case-insensitive multiline matching: (filemask (i m) \"[0-5] some regexp\")
+ * rule \"Russian substring\" (rusbodymask \"строка\")
 
- * (bodymask FLAGS REGEXP)
+Rule matching files with bodies matching regexp \"строка\" in charsets UTF-8,
+koi8-r, cp1251, cp866
 
-The same ase (filemask ...), but for matching file content (only first 400KB of file!)
+Boolean logic:
 
- * (defmacro NAME ARGS BODY)
+ * rule \"Logic OR\" (true || false)
+ * rule \"Logic AND\" (true && false)
+ * rule \"Logic NOR\" (not false)
+ * rule \"Extended logic\" (not false && true || (true or false))
 
-Define new macro with name NAME, arguments list ARGS and body BODY. Macro is visible only
-in current (seq ...) block and all nested blocks. To make it simple, all configs are
-nested sequentially into one global (seq ...). So macros defined on top of first config
-will be visible in all next.
+Define constant:
 
-For example:
+let is_php = filemask (i) \"php[345]?$\";;
 
-(seq
-  (defmacro html () (filemask () \"html$\"))
+Use constant:
 
-  (if html (notify \"HTML file\")))
-
-With arguments:
-
-(seq
-  (defmacro i-fmask (mask) (filemask (i) mask))
-
-  (if (i-mask \"hTmL$\") (notify \"HTML file\")))
-
- * (iconv SRC DST STRING)
-
-Convert STRING from SRC charset to DST.
-
-Example: (iconv UTF-8 koi8-r \"some string\")
-
- * (set-context FILENAME BODY)
-
-Switch to file FILENAME in BODY commands. This is usefull
-when you want to check related file.
-
-Example:
-
-(if (filemask (i) \"index.html\")
-  (set-context \"login.php\"
-    (if (bodymask () \"$request = $_POST\")
-      (notify \"Infected!\"))))
-
+rule \"Is PHP script\" is_php;;
 
 KNOWN OPTIONS
 "
@@ -109,20 +83,19 @@ module Evaluator = ASTOptimized.MakeEvaluator (
   end)
 *)
 
-let notify_cb fileinfo message =
-  Printf.printf "file %s : %s\n" fileinfo.SSScript.filename message
-
 let main () =
   let open Lwt in
-  (*
-  Config.get !configReaders
-  >>= fun (context_info, optimized) ->
-*)
-  let script = SSScript.prepare ~debug:true "
+  SSConfig.get !configReaders
+  >>= fun scripts ->
 
-rule \"Test\" (filemask (s i) \"PHP\" && rusbodymask \"match\");;
-
-"
+  if scripts = [] then (
+    Printf.eprintf "No configs specified\n";
+    exit 1
+  );
+    
+  let script =
+    List.map (fun (domain, script) -> (SSConfig_sig.string_of_domain domain), script) scripts
+    |> SSScript.prepare
   in
 
   let open Pipe.Sig in
@@ -132,11 +105,38 @@ rule \"Test\" (filemask (s i) \"PHP\" && rusbodymask \"match\");;
        match utilpipe with
        | UtilPipe.File file ->
          let fileinfo = SSScript.fileinfo file.UtilPipe.file in
-         let () = SSScript.run ~debug:true ~notify_cb ~script fileinfo in
-         Lwt.return ()
+         let msgs = ref [] in
+         let notify_cb fileinfo message =
+           msgs := message :: !msgs;
+         in
+         let () = SSScript.run ~notify_cb ~script fileinfo in
+         let open UtilPipe in
+         let output alert =
+           let file = { file with alert } in
+           let line = (to_pipe (File file)) in
+           Pipeline.output Lwt_io.stdout line
+         in
+         if file.alert = "" && !msgs = [] then
+           output file.alert
+         else (
+           (
+             if file.alert <> "" then
+               output file.alert
+             else
+               return ()
+           ) >>=
+           fun () -> Lwt_list.iter_s output (List.rev !msgs)
+         )
       | _ ->
         Pipeline.output Lwt_io.stdout pipe
     ) Lwt_io.stdin
+
+let main () =
+  let error_cb msg =
+    Printf.eprintf "%s\n" msg;
+    exit 1
+  in
+  ScriptParse.wrapped ~error_cb main
 
 let () =
   Arg.parse args (fun _ -> ()) usage;

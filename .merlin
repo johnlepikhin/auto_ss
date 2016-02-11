@@ -3,11 +3,11 @@ B _build/**
 PKG sexplib
 PKG lwt
 PKG lwt.unix
-PKG pcre_superex
 PKG shell_escape
 PKG iconv
 PKG xmlaccess
 PKG xml-light
 PKG compiler-libs.common
 PKG ocaml_scripting
+PKG pcre
 
