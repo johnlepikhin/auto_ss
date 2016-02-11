@@ -121,10 +121,11 @@ let main () =
                let file = UtilPipe.{ file; alert = ""; tail = [] } in
                check (rec_deepness+1) file
              in
-             if not (UtilPipe.file_is_empty file) || not !has_output then
-               register_output fileinfo file.UtilPipe.alert;
 
-             SSScript.run ~notify_cb:register_output ~queuefile_cb ~script fileinfo
+             SSScript.run ~notify_cb:register_output ~queuefile_cb ~script fileinfo;
+
+             if not (UtilPipe.file_is_empty file) || not !has_output then
+               register_output fileinfo file.UtilPipe.alert
            )
          in
          check 0 file;
