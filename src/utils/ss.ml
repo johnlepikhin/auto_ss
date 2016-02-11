@@ -53,7 +53,7 @@ Boolean logic:
 
  * rule \"Logic OR\" (true || false)
  * rule \"Logic AND\" (true && false)
- * rule \"Logic NOR\" (not false)
+ * rule \"Logic NOT\" (not false)
  * rule \"Extended logic\" (not false && true || (true or false))
 
 Define constant:
