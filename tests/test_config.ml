@@ -2,15 +2,24 @@
 open Lwt
 
 let configs = [
-  "sldir:configs";
-  "slarg"
+  "dir:configs";
+  "arg"
 ]
 
+let notify_cb fileinfo message =
+  Printf.printf "Matched rule: %s\n" message
+
 let main =
-  Config.get configs
-  >>= fun (context_info, optimized) ->
+  SSConfig.get configs
+  >>= fun scripts ->
+  let script =
+    List.map (fun (domain, script) -> (SSConfig_sig.string_of_domain domain), script) scripts
+    |> SSScript.prepare
+  in
   let filename = "tests/matchedfile" in
-  ASTOptimized.Sample.apply optimized context_info filename filename
+  let fileinfo = SSScript.fileinfo filename in
+  let () = SSScript.run ~notify_cb ~script fileinfo in
+  return ()
   
 let () =
   Lwt_main.run main
