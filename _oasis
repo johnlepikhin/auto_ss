@@ -1,6 +1,6 @@
 OASISFormat: 0.4
 Name: security_scanner
-Version: 1.0
+Version: 2.1
 License: BSD-3-clause
 Authors: Evgenii Lepikhin
 BuildTools: ocamlbuild
