@@ -1,7 +1,7 @@
 
 module M : SSConfig_sig.CONFIGREADER =
 struct
-  let identifier = "sldir"
+  let identifier = "dir"
 
   let readdir dir =
     let open Unix in

@@ -7,7 +7,7 @@ sig
 end
 =
 struct
-  let identifier = "slfile"
+  let identifier = "file"
 
   let filelimit = 40960000L
 
