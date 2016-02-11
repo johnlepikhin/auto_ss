@@ -104,29 +104,36 @@ let main () =
        let utilpipe = UtilPipe.of_pipe pipe in
        match utilpipe with
        | UtilPipe.File file ->
-         let fileinfo = SSScript.fileinfo file.UtilPipe.file in
          let msgs = ref [] in
-         let notify_cb fileinfo message =
-           msgs := message :: !msgs;
+         let rec check rec_deepness file =
+           if rec_deepness > 10 then
+             ()
+           else (
+             let fileinfo = SSScript.fileinfo file.UtilPipe.file in
+             let has_output = ref false in
+             let register_output fileinfo alert =
+               msgs := UtilPipe.{ file with alert } :: !msgs;
+               has_output := true;
+             in
+             let queuefile_cb fileinfo filename =
+               let dir = Filename.dirname fileinfo.SSScript.filename in
+               let file = Printf.sprintf "%s%s%s" dir Filename.dir_sep filename in
+               let file = UtilPipe.{ file; alert = ""; tail = [] } in
+               check (rec_deepness+1) file
+             in
+             if not (UtilPipe.file_is_empty file) || not !has_output then
+               register_output fileinfo file.UtilPipe.alert;
+
+             SSScript.run ~notify_cb:register_output ~queuefile_cb ~script fileinfo
+           )
          in
-         let () = SSScript.run ~notify_cb ~script fileinfo in
+         check 0 file;
          let open UtilPipe in
-         let output alert =
-           let file = { file with alert } in
+         let output file =
            let line = (to_pipe (File file)) in
            Pipeline.output Lwt_io.stdout line
          in
-         if file.alert = "" && !msgs = [] then
-           output file.alert
-         else (
-           (
-             if file.alert <> "" then
-               output file.alert
-             else
-               return ()
-           ) >>=
-           fun () -> Lwt_list.iter_s output (List.rev !msgs)
-         )
+         Lwt_list.iter_s output (List.rev !msgs)
       | _ ->
         Pipeline.output Lwt_io.stdout pipe
     ) Lwt_io.stdin

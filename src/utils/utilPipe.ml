@@ -9,6 +9,9 @@ type t =
   | File of file
   | Meta of string
 
+let file_is_empty f =
+  f.alert = "" && List.exists (( <> ) "") f.tail
+
 exception InvalidInput
 
 let of_pipe = function
