@@ -9,6 +9,9 @@ let configs = [
 let notify_cb fileinfo message =
   Printf.printf "Matched rule: %s\n" message
 
+let queuefile_cb fileinfo filename =
+  Printf.printf "Queue file: %s\n" filename
+
 let main =
   SSConfig.get configs
   >>= fun scripts ->
@@ -18,7 +21,7 @@ let main =
   in
   let filename = "tests/matchedfile" in
   let fileinfo = SSScript.fileinfo filename in
-  let () = SSScript.run ~notify_cb ~script fileinfo in
+  let () = SSScript.run ~notify_cb ~queuefile_cb ~script fileinfo in
   return ()
   
 let () =

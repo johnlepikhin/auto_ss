@@ -63,8 +63,11 @@ let prepare ?debug sources =
   in
   let external_fns = ScriptInterp.[
       ext_fn "rule" ["string"; "bool"] "unit" (Obj.repr (empty "rule"));
+      ext_fn "queuefile" ["string"; "bool"] "unit" (Obj.repr (empty "queuefile"));
       ext_fn "match_bodymask" ["int"] "bool" (Obj.repr (empty "match_bodymask"));
       ext_fn "match_filemask" ["int"] "bool" (Obj.repr (empty "match_filemask"));
+      ext_fn "exists" ["string"] "bool" (Obj.repr (empty "exists"));
+      ext_fn "filesize" ["unit"] "int64" (Obj.repr (empty "filesize"));
     ]
   in
 
@@ -158,12 +161,30 @@ let match_filemask ?(debug=false) prepared fileinfo id =
     with
     | _ -> false
 
-let run ?(debug=false) ~notify_cb ~script fileinfo =
+let run ?(debug=false) ~notify_cb ~queuefile_cb ~script fileinfo =
   let open ScriptInterp in
   let rule name = function
     | false -> ()
     | true ->
       notify_cb fileinfo name
+  in
+  let queuefile name = function
+    | false -> ()
+    | true ->
+      queuefile_cb fileinfo name
+  in
+  let exists fname =
+    let dir = Filename.dirname fileinfo.filename in
+    let file = Printf.sprintf "%s%s%s" dir Filename.dir_sep fname in
+    Sys.file_exists file
+  in
+  let filesize () =
+    try
+      let open Unix.LargeFile in
+      let s = stat fileinfo.filename in
+      s.st_size
+    with
+    | _ -> 0L
   in
   
   let notify_ccall =
@@ -178,12 +199,24 @@ let run ?(debug=false) ~notify_cb ~script fileinfo =
   let rule_ccall =
     ext_fn "rule" ["string"; "bool"] "unit" (Obj.repr rule)
   in
+  let queuefile_ccall =
+    ext_fn "queuefile" ["string"; "bool"] "unit" (Obj.repr queuefile)
+  in
+  let exists_ccall =
+    ext_fn "exists" ["string"] "bool" (Obj.repr exists)
+  in
+  let filesize_ccall =
+    ext_fn "filesize" ["unit"] "int64" (Obj.repr filesize)
+  in
   let state = makeReadyCopy script.state in
   let world =
     add_external match_bodymask_ccall state.world
     |> add_external match_filemask_ccall
+    |> add_external exists_ccall
+    |> add_external filesize_ccall
     |> add_external notify_ccall
     |> add_external rule_ccall
+    |> add_external queuefile_ccall
   in
   let state = { state with world } in
   if debug then
