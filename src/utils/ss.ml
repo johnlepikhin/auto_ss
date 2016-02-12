@@ -11,6 +11,7 @@ let set_format v f =
     match f with
     | "shellescape" -> (module (PipeShell) : Pipe.PIPE_FORMAT)
     | "nullchar" -> (module (PipeNullChar) : Pipe.PIPE_FORMAT)
+    | "find-print0" -> (module (PipeFindPrint0) : Pipe.PIPE_FORMAT)
     | _ ->
       Printf.eprintf "Unknown pipe format: %s\n" f;
       exit 1
