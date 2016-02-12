@@ -10,7 +10,7 @@ type t =
   | Meta of string
 
 let file_is_empty f =
-  f.alert = "" && List.exists (( <> ) "") f.tail
+  f.alert = "" && not (List.exists (( <> ) "") f.tail)
 
 exception InvalidInput
 
