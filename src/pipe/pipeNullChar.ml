@@ -3,16 +3,16 @@ open Pipe.Sig
 
 let unescape =
   let open Pcre in
-  let rex1 = regexp "\\001" in
-  let rexslash = regexp "\\\\" in
+  let rex1 = regexp "\\\\001" in
+  let rexslash = regexp "\\\\\\\\" in
   fun s ->
     Pcre.replace ~rex:rex1 ~templ:"\001" s
     |> Pcre.replace ~rex:rexslash ~templ:"\\"
 
 let escape =
   let open Pcre in
-  let rex1 = regexp "\001" in
-  let rexslash = regexp "\\" in
+  let rex1 = regexp "\\001" in
+  let rexslash = regexp "\\\\" in
   fun s ->
     Pcre.replace ~rex:rexslash ~templ:"\\\\" s
     |> Pcre.replace ~rex:rex1 ~templ:"\\001"

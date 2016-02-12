@@ -9,12 +9,12 @@ struct
     let rec aux () =
       read_char ic
       >>= fun c ->
-        if c = separator then
-          return (Some (Buffer.contents b))
-        else (
-          Buffer.add_char b c;
-          aux ()
-        )
+      if c = separator then
+        return (Some (Buffer.contents b))
+      else (
+        Buffer.add_char b c;
+        aux ()
+      )
     in
     catch aux (fun _ -> return None)
 
