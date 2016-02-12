@@ -87,12 +87,7 @@ let main () =
   let open Lwt in
   SSConfig.get !configReaders
   >>= fun scripts ->
-
-  if scripts = [] then (
-    Printf.eprintf "No configs specified\n";
-    exit 1
-  );
-    
+  let scripts = (SSConfig_sig.Virtual, "") :: scripts in
   let script =
     List.map (fun (domain, script) -> (SSConfig_sig.string_of_domain domain), script) scripts
     |> SSScript.prepare
