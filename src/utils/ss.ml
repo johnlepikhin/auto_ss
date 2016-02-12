@@ -3,9 +3,25 @@ let configReaders = ref [
   "arg";
 ]
 
+let input_format = ref (module (PipeNullChar) : Pipe.PIPE_FORMAT)
+let output_format = ref (module (PipeNullChar) : Pipe.PIPE_FORMAT)
+
+let set_format v f =
+  let m =
+    match f with
+    | "shellescape" -> (module (PipeShell) : Pipe.PIPE_FORMAT)
+    | "nullchar" -> (module (PipeNullChar) : Pipe.PIPE_FORMAT)
+    | _ ->
+      Printf.eprintf "Unknown pipe format: %s\n" f;
+      exit 1
+  in
+  v := m
+
 let args = Arg.[
     "-r", String (fun s -> configReaders := s :: !configReaders), "Add config new reader";
     "--script", String (fun _ -> ()), "Pass additional rule";
+    "-if", String (set_format input_format), "Pipe format for STDIN";
+    "-of", String (set_format output_format), "Pipe format for STDOUT";
 ]
 
 let usage = "
@@ -67,22 +83,6 @@ rule \"Is PHP script\" is_php;;
 KNOWN OPTIONS
 "
 
-module Pipeline = PipeLwt.Make (PipeShell)
-
-(*
-module Evaluator = ASTOptimized.MakeEvaluator (
-  struct
-    type t = UtilPipe.file
-
-    let notify (context_info : ASTOptimized.ContextInfo.t) (context : t) alert =
-      let open ASTOptimized in
-      let file = UtilPipe.{ context with alert } in
-      let line = UtilPipe.(to_pipe (File file)) in
-      Pipeline.output Lwt_io.stdout line
-
-  end)
-*)
-
 let main () =
   let open Lwt in
   SSConfig.get !configReaders
@@ -99,7 +99,10 @@ let main () =
   in
 
   let open Pipe.Sig in
-  Pipeline.iter_input
+  let module IN_FORMAT = (val !input_format) in
+  let module OUT_FORMAT = (val !output_format) in
+  let module P = PipeLwt.Make (IN_FORMAT) (OUT_FORMAT) in
+  P.iter_input
     (fun pipe ->
        let utilpipe = UtilPipe.of_pipe pipe in
        match utilpipe with
@@ -132,11 +135,11 @@ let main () =
          let open UtilPipe in
          let output file =
            let line = (to_pipe (File file)) in
-           Pipeline.output Lwt_io.stdout line
+           P.output Lwt_io.stdout line
          in
          Lwt_list.iter_s output (List.rev !msgs)
       | _ ->
-        Pipeline.output Lwt_io.stdout pipe
+        P.output Lwt_io.stdout pipe
     ) Lwt_io.stdin
 
 let main () =
