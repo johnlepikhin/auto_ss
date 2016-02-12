@@ -6,15 +6,17 @@ struct
     tail : string list;
   }
 
-  type t =
+  type pipe =
     | File of file
     | Meta of string
 end
 
-module type PIPE =
+module type PIPE_FORMAT =
 sig
-  val of_string: string -> Sig.t
-  val to_string: Sig.t -> string
+  val of_string: string -> Sig.pipe
+  val to_string: Sig.pipe -> string
+
+  val record_separator: char
 end
 
 module type IO =
@@ -26,26 +28,28 @@ sig
   val return : 'a -> 'a t
   val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
   
-  val read_line_opt : input_channel -> string option t
-  val write_line : output_channel -> string -> unit t
+  val read_record_opt : separator : char -> input_channel -> string option t
+  val write_record : separator : char -> output_channel -> string -> unit t
+
+  val return: 'a -> 'a t
 end
 
-module Make (IO : IO) (P : PIPE) =
+module Make (IO : IO) (IN : PIPE_FORMAT) (OUT : PIPE_FORMAT) =
 struct
-  open IO
+  include IO
   include Sig
-  
+
   let iter_input fn input_channel =
     let rec loop () =
-      read_line_opt input_channel
+      read_record_opt ~separator:IN.record_separator input_channel
       >>= function
       | None -> return ()
       | Some s ->
-        fn (P.of_string s)
+        fn (IN.of_string s)
         >>= fun () -> loop ()
     in
     loop ()
 
   let output output_channel r =
-    IO.write_line output_channel @@ P.to_string r
+    IO.write_record ~separator:OUT.record_separator output_channel @@ OUT.to_string r
 end

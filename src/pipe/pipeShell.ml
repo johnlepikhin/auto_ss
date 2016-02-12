@@ -29,3 +29,5 @@ let file_to_string r =
 let to_string = function
   | File r -> file_to_string r
   | Meta r -> ShellEscape.escape_string r
+
+let record_separator = '\n'
