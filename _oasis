@@ -21,6 +21,14 @@ Library pipeline_lwt
   Modules: PipeLwt
   BuildDepends: pipeline, lwt, lwt.unix
 
+Library pipeline_unix
+  Path: src/pipe
+  FindlibName: unix
+  FindlibParent: pipeline
+  Install: false
+  Modules: PipeLwt
+  BuildDepends: pipeline, unix
+
 Library ss_script
   Path: src/script
   Modules: AstMapper, SSScript
@@ -31,6 +39,12 @@ Library ss_config
   Install: false
   Modules: SSConfig_sig, SSConfig, SSConfigFile, SSConfigDir, SSConfigArg
   BuildDepends: lwt, unix, pcre
+
+Library monitor_file_updates
+  Path: src/monitor
+  Install: false
+  Modules: MonitorFileUpdates
+  BuildDepends: unix, pcre
 
 Executable test_pipeShellLwt
   Path: tests
@@ -43,6 +57,12 @@ Executable test_config
   Install: false
   MainIs: test_config.ml
   BuildDepends: lwt, lwt.unix, ss_config, ss_script
+
+Executable test_monitor_file_updates
+  Path: tests
+  Install: false
+  MainIs: test_monitorFileUpdates.ml
+  BuildDepends: monitor_file_updates
 
 Executable mapper_ppx
   Path: src/utils
@@ -63,4 +83,11 @@ Executable ssconfig_of_manul
   CompiledObject: best
   MainIs: ssconfig_of_manul.ml
   BuildDepends: xmlaccess, xml-light
+
+Executable ss_monitor_logs
+  Path: src/utils
+  Install: false
+  CompiledObject: best
+  MainIs: ss_monitor_logs.ml
+  BuildDepends: monitor_file_updates, unix, pipeline.unix
 
