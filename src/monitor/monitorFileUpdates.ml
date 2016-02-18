@@ -61,5 +61,6 @@ let getdiff prev next =
           rcollection
       with
       | _ ->
-        rcollection
+        (* this is new file *)
+        Collection.add path next rcollection
     ) next Collection.empty

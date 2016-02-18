@@ -33,9 +33,10 @@ let () =
 
 let output files =
   Collection.iter (fun path (st, pos_begin, pos_end) ->
-      List.map PipeHuman.escape [path; Int64.to_string pos_begin; Int64.to_string pos_end]
-      |> String.concat "\t"
-      |> print_endline
+      if Int64.sub pos_end pos_begin > 0L then
+        List.map PipeHuman.escape [path; Int64.to_string pos_begin; Int64.to_string pos_end]
+        |> String.concat "\t"
+        |> print_endline
     ) files;
   flush stdout
 
