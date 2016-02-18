@@ -58,6 +58,9 @@ Rule matching files which names matching regexp php[345]?$
 
 The same but case-less
 
+Possible regexp flags are: i = caseless, m = multiline, s = dotall, x = extended, u = utf-8
+Flags are space-separated: filemask (i m s) \".*\"
+
  * rule \"PHP files\" (bodymask () \"<html>\");;
 
 Rule matching files with bodies matching regexp \"<html>\"
@@ -66,6 +69,23 @@ Rule matching files with bodies matching regexp \"<html>\"
 
 Rule matching files with bodies matching regexp \"строка\" in charsets UTF-8,
 koi8-r, cp1251, cp866
+
+OTHER targets
+
+ * queuefile \"other/file/to/check.php\" condition
+
+Adds into check queue specified if condition is true.
+
+OTHER conditions
+
+ * exists \"file.php\"
+
+Checks if file \"file.php\" exists (path is relative to current file)
+
+ * filesize > 1000L
+
+Checks if current file size > 1000 bytes
+
 
 Boolean logic:
 
