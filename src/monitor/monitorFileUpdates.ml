@@ -14,10 +14,10 @@ let groups_of_regexp =
       let subs = exec_all ~rex s in
       let groups = Array.map (fun sub -> get_substring sub 1) subs in
       let s' = replace ~rex:repl_rex ~templ:"(.*?)" s in
-      regexp s', groups, s
+      Regexp (regexp s', groups, s)
     with
     | _ ->
-      regexp s, [||], s
+      Regexp (regexp s, [||], s)
 
 let result_of_regexp path values rex groups src =
   let rec map = function

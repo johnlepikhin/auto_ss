@@ -3,8 +3,8 @@ open MonitorFileUpdates
 
 let path = [
   Path "/var";
-  Path "log";
-  Regexp (Pcre.regexp "\\.log$", [||], "\\.log$")
+  groups_of_regexp "%logdir%$";
+  groups_of_regexp "%logfile%\\.log$";
 ]
 
 let get () =
