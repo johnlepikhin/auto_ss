@@ -4,7 +4,7 @@ open MonitorFileUpdates
 let path = [
   Path "/var";
   Path "log";
-  Regexp (Pcre.regexp "\\.log$")
+  Regexp (Pcre.regexp "\\.log$", [||], "\\.log$")
 ]
 
 let get () =
@@ -17,6 +17,7 @@ let () =
   ignore (read_line ());
   let l2 = get () in
   let diff = getdiff l1 l2 in
-  Collection.iter (fun path (st, pos_begin, pos_end) ->
-      Printf.printf "file %s changed, begin=%Li, end=%Li\n" path pos_begin pos_end
+  Collection.iter (fun path (st, pos_begin, pos_end, values) ->
+      let values = List.map (fun (k,v) -> Printf.sprintf "%s=%s" k v) values |> String.concat ", " in
+      Printf.printf "file %s changed, begin=%Li, end=%Li, values: %s\n" path pos_begin pos_end values
     ) diff

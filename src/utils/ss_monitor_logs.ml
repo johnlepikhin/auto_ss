@@ -7,7 +7,9 @@ let sleep = ref 0
 
 let args = Arg.[
     "-p", String (fun s -> mask := Path s :: !mask), "Add string element to path mask";
-    "-r", String (fun s -> mask := Regexp (Pcre.regexp s) :: !mask), "Add regexp element to path mask";
+    "-r", String (fun s ->
+        let (rex', groups, rex) = groups_of_regexp s in
+        mask := Regexp (rex', groups, rex) :: !mask), "Add regexp element to path mask";
     "-s", Set_int sleep, "Sleep for specified number of seconds before next check. If =0 then just output all found files";
   ]
 
@@ -32,9 +34,11 @@ let () =
 
 
 let output files =
-  Collection.iter (fun path (st, pos_begin, pos_end) ->
+  Collection.iter (fun path (st, pos_begin, pos_end, values) ->
       if Int64.sub pos_end pos_begin > 0L then
-        List.map PipeHuman.escape [path; Int64.to_string pos_begin; Int64.to_string pos_end]
+        let values = List.map (fun (k,v) -> Printf.sprintf "%s=%s" k v) values in
+        let line = path :: Int64.to_string pos_begin :: Int64.to_string pos_end :: values in
+        List.map PipeHuman.escape line
         |> String.concat "\t"
         |> print_endline
     ) files;
