@@ -25,7 +25,6 @@ Will list all files matching mask /var/log/*.log
 
 "
 
-
 let () =
   Arg.parse args (fun _ -> ()) usage;
   mask := List.rev !mask

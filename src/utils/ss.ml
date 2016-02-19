@@ -120,7 +120,7 @@ let main () =
   P.iter_input
     (fun pipe ->
        match pipe with
-       | Pipe.Record file ->
+       | Pipe.Record record ->
          let msgs = ref [] in
          let rec check rec_deepness file =
            if rec_deepness > 10 then
@@ -135,7 +135,7 @@ let main () =
              let queuefile_cb fileinfo filename =
                let dir = Filename.dirname fileinfo.SSScript.filename in
                let file = Printf.sprintf "%s%s%s" dir Filename.dir_sep filename in
-               let file = PipeFmtMain.Type.{ file; alert = ""; tail = [] } in
+               let file = PipeFmtMain.Type.{ file; alert = ""; remote_ip = record.remote_ip; tail = [] } in
                check (rec_deepness+1) file
              in
 
@@ -145,7 +145,7 @@ let main () =
                register_output fileinfo file.PipeFmtMain.Type.alert
            )
          in
-         check 0 file;
+         check 0 record;
          let output file =
            P.output Lwt_io.stdout (Pipe.Record file)
          in

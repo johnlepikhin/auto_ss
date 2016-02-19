@@ -7,6 +7,11 @@ BuildTools: ocamlbuild
 Plugins: META (0.4), DevFiles (0.4)
 Synopsis: Security Scanner
 
+Library common
+  Path: src/common
+  Install: false
+  Modules: Os
+
 Library pipeline
   Path: src/pipe
   Install: false
@@ -45,6 +50,12 @@ Library monitor_file_updates
   Install: false
   Modules: MonitorFileUpdates
   BuildDepends: unix, pcre
+
+Library log_parse
+  Path: src/logparse
+  Install: false
+  Modules: LogParse
+  BuildDepends: unix, pcre, pipeline, common
 
 Executable test_pipeShellLwt
   Path: tests
@@ -90,4 +101,11 @@ Executable ss_monitor_logs
   CompiledObject: best
   MainIs: ss_monitor_logs.ml
   BuildDepends: monitor_file_updates, unix, pipeline.unix
+
+Executable ss_parse_apache
+  Path: src/utils
+  Install: false
+  CompiledObject: best
+  MainIs: ss_parse_apache.ml
+  BuildDepends: log_parse
 
