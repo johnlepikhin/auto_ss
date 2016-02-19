@@ -21,18 +21,10 @@ let usage = ""
 
 module Parser =
 struct
-  let get_siteroot values =
-    let open Os in
-    try
-      let username = List.assoc "username" values in
-      (
-        match Os.v with
-        | Os.UNIX -> Filename.concat (Filename.concat "/home/virtwww" username) "http"
-        | Os.Windows -> Filename.concat "d:\\web\\1Gb.ru\\hosted" username
-      )
-    with
-    | _ ->
-      failwith "No username passed"
+  let get_siteroot username =
+    match Os.v with
+    | Os.UNIX -> Filename.concat (Filename.concat "/home/virtwww" username) "http"
+    | Os.Windows -> Filename.concat "d:\\web\\1Gb.ru\\hosted" username
 
   let parse =
     let open Pcre in
@@ -42,13 +34,15 @@ struct
       try
         let subs = exec ~rex line in
         let remote_ip = get_substring subs 1 in
+        let username = List.assoc "username" values in
         let uri = get_substring subs 2 in
-        let full_fpath = get_siteroot values in
+        let full_fpath = get_siteroot username in
         let file = full_fpath ^ uri in
         Some PipeFmtMain.Type.{
             file;
             alert = "";
             remote_ip;
+            username;
             tail = [];
           }
       with

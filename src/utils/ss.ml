@@ -135,7 +135,14 @@ let main () =
              let queuefile_cb fileinfo filename =
                let dir = Filename.dirname fileinfo.SSScript.filename in
                let file = Printf.sprintf "%s%s%s" dir Filename.dir_sep filename in
-               let file = PipeFmtMain.Type.{ file; alert = ""; remote_ip = record.remote_ip; tail = [] } in
+               let file = PipeFmtMain.Type.{
+                   file;
+                   alert = "";
+                   remote_ip = record.remote_ip;
+                   username = record.username;
+                   tail = []
+                 }
+               in
                check (rec_deepness+1) file
              in
 
