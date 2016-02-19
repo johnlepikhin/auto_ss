@@ -3,26 +3,9 @@ let configReaders = ref [
   "arg";
 ]
 
-let input_format = ref (module PipeNullChar.Make : Pipe.PIPE_FORMAT)
-let output_format = ref (module PipeNullChar.Make : Pipe.PIPE_FORMAT)
-
-let set_format v f =
-  let m =
-    match f with
-    | "shellescape" -> (module PipeShell.Make : Pipe.PIPE_FORMAT)
-    | "nullchar" -> (module PipeNullChar.Make : Pipe.PIPE_FORMAT)
-    | "human" -> (module PipeHuman.Make : Pipe.PIPE_FORMAT)
-    | _ ->
-      Printf.eprintf "Unknown pipe format: %s\n" f;
-      exit 1
-  in
-  v := m
-
-let args = Arg.[
+let args = ArgPipeFormat.argsInOut @ Arg.[
     "-r", String (fun s -> configReaders := s :: !configReaders), "Add config new reader";
     "--script", String (fun _ -> ()), "Pass additional rule";
-    "-if", String (set_format input_format), "Pipe format for STDIN";
-    "-of", String (set_format output_format), "Pipe format for STDOUT";
 ]
 
 let usage = "
@@ -100,9 +83,9 @@ let is_php = filemask (i) \"php[345]?$\";;
 Use constant:
 
 rule \"Is PHP script\" is_php;;
-
+" ^ ArgPipeFormat.usageInOut ^ "
 KNOWN OPTIONS
-"
+" 
 
 let main () =
   let open Lwt in
@@ -114,8 +97,8 @@ let main () =
     |> SSScript.prepare
   in
 
-  let module IN_FORMAT = (val !input_format) in
-  let module OUT_FORMAT = (val !output_format) in
+  let module IN_FORMAT = (val !ArgPipeFormat.input_format) in
+  let module OUT_FORMAT = (val !ArgPipeFormat.output_format) in
   let module P = PipeLwt.Make (PipeFmtMain.Type) (IN_FORMAT) (OUT_FORMAT) in
   P.iter_input
     (fun pipe ->

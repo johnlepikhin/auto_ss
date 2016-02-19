@@ -1,23 +1,7 @@
 
-let output_format = ref (module PipeNullChar.Make : Pipe.PIPE_FORMAT)
+let args = ArgPipeFormat.argsOut
 
-let set_format v f =
-  let m =
-    match f with
-    | "shellescape" -> (module PipeShell.Make : Pipe.PIPE_FORMAT)
-    | "nullchar" -> (module PipeNullChar.Make : Pipe.PIPE_FORMAT)
-    | "human" -> (module PipeHuman.Make : Pipe.PIPE_FORMAT)
-    | _ ->
-      Printf.eprintf "Unknown pipe format: %s\n" f;
-      exit 1
-  in
-  v := m
-
-let args = Arg.[
-    "-of", String (set_format output_format), "Pipe format for STDOUT";
-]
-
-let usage = ""
+let usage = ArgPipeFormat.usageOut ^ "\nCOMMAND LINE ARGUMENTS:\n"
 
 module Parser =
 struct
@@ -52,6 +36,6 @@ end
 
 let () =
   Arg.parse args (fun _ -> ()) usage;
-  let module OUT_FORMAT = (val !output_format) in
+  let module OUT_FORMAT = (val !ArgPipeFormat.output_format) in
   let module Processor = LogParse.Make (PipeUnix.IO) (PipeHuman.Make) (OUT_FORMAT) (Parser) in
   Processor.process ()
