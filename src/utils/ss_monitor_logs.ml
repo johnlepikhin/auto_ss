@@ -30,15 +30,19 @@ let () =
   Arg.parse args (fun _ -> ()) usage;
   mask := List.rev !mask
 
+module P = PipeUnix.Make (PipeFmtLog.Type) (PipeHuman.Make) (PipeHuman.Make)
 
 let output files =
-  Collection.iter (fun path (st, pos_begin, pos_end, values) ->
-      if Int64.sub pos_end pos_begin > 0L then
-        let values = List.map (fun (k,v) -> Printf.sprintf "%s=%s" k v) values in
-        let line = path :: Int64.to_string pos_begin :: Int64.to_string pos_end :: values in
-        List.map PipeHuman.escape line
-        |> String.concat "\t"
-        |> print_endline
+  Collection.iter (fun path (st, begin_pos, end_pos, values) ->
+      if Int64.sub end_pos begin_pos > 0L then
+        let record = PipeFmtLog.Type.{
+            file = path;
+            begin_pos;
+            end_pos;
+            values;
+          }
+        in
+        P.output stdout (Pipe.Record record)
     ) files;
   flush stdout
 

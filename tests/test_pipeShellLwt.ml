@@ -1,5 +1,5 @@
 
-module Pipe = PipeLwt.Make (PipeShell) (PipeShell)
+module Pipe = PipeLwt.Make (PipeFmtMain.Type) (PipeShell.Make) (PipeShell.Make)
 
 let printer r =
   Pipe.output Lwt_io.stdout r

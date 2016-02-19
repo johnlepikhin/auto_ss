@@ -3,16 +3,15 @@ let configReaders = ref [
   "arg";
 ]
 
-let input_format = ref (module (PipeNullChar) : Pipe.PIPE_FORMAT)
-let output_format = ref (module (PipeNullChar) : Pipe.PIPE_FORMAT)
+let input_format = ref (module PipeNullChar.Make : Pipe.PIPE_FORMAT)
+let output_format = ref (module PipeNullChar.Make : Pipe.PIPE_FORMAT)
 
 let set_format v f =
   let m =
     match f with
-    | "shellescape" -> (module (PipeShell) : Pipe.PIPE_FORMAT)
-    | "nullchar" -> (module (PipeNullChar) : Pipe.PIPE_FORMAT)
-    | "find-print0" -> (module (PipeFindPrint0) : Pipe.PIPE_FORMAT)
-    | "human" -> (module (PipeHuman) : Pipe.PIPE_FORMAT)
+    | "shellescape" -> (module PipeShell.Make : Pipe.PIPE_FORMAT)
+    | "nullchar" -> (module PipeNullChar.Make : Pipe.PIPE_FORMAT)
+    | "human" -> (module PipeHuman.Make : Pipe.PIPE_FORMAT)
     | _ ->
       Printf.eprintf "Unknown pipe format: %s\n" f;
       exit 1
@@ -115,44 +114,40 @@ let main () =
     |> SSScript.prepare
   in
 
-  let open Pipe.Sig in
   let module IN_FORMAT = (val !input_format) in
   let module OUT_FORMAT = (val !output_format) in
-  let module P = PipeLwt.Make (IN_FORMAT) (OUT_FORMAT) in
+  let module P = PipeLwt.Make (PipeFmtMain.Type) (IN_FORMAT) (OUT_FORMAT) in
   P.iter_input
     (fun pipe ->
-       let utilpipe = UtilPipe.of_pipe pipe in
-       match utilpipe with
-       | UtilPipe.File file ->
+       match pipe with
+       | Pipe.Record file ->
          let msgs = ref [] in
          let rec check rec_deepness file =
            if rec_deepness > 10 then
              ()
            else (
-             let fileinfo = SSScript.fileinfo file.UtilPipe.file in
+             let fileinfo = SSScript.fileinfo file.PipeFmtMain.Type.file in
              let has_output = ref false in
              let register_output fileinfo alert =
-               msgs := UtilPipe.{ file with alert } :: !msgs;
+               msgs := PipeFmtMain.Type.{ file with alert } :: !msgs;
                has_output := true;
              in
              let queuefile_cb fileinfo filename =
                let dir = Filename.dirname fileinfo.SSScript.filename in
                let file = Printf.sprintf "%s%s%s" dir Filename.dir_sep filename in
-               let file = UtilPipe.{ file; alert = ""; tail = [] } in
+               let file = PipeFmtMain.Type.{ file; alert = ""; tail = [] } in
                check (rec_deepness+1) file
              in
 
              SSScript.run ~notify_cb:register_output ~queuefile_cb ~script fileinfo;
 
-             if not (UtilPipe.file_is_empty file) || not !has_output then
-               register_output fileinfo file.UtilPipe.alert
+             if not (PipeFmtMain.Type.file_is_empty file) || not !has_output then
+               register_output fileinfo file.PipeFmtMain.Type.alert
            )
          in
          check 0 file;
-         let open UtilPipe in
          let output file =
-           let line = (to_pipe (File file)) in
-           P.output Lwt_io.stdout line
+           P.output Lwt_io.stdout (Pipe.Record file)
          in
          Lwt_list.iter_s output (List.rev !msgs)
       | _ ->

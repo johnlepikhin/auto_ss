@@ -10,7 +10,7 @@ Synopsis: Security Scanner
 Library pipeline
   Path: src/pipe
   Install: false
-  Modules: Pipe, PipeShell, PipeNullChar
+  Modules: Pipe, PipeShell, PipeNullChar, PipeFmtMain
   BuildDepends: shell_escape, pcre
 
 Library pipeline_lwt
