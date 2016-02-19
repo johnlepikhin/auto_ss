@@ -11,3 +11,5 @@ configure
 src/*/META
 src/*/*.mllib
 src/*/*.mldylib
+tests/matchedfile.php
+tests/unmatchedfile
