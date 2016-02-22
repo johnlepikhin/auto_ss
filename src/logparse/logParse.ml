@@ -24,7 +24,8 @@ struct
             POUT.output stdout (Pipe.Record record)
           | None ->
             ()
-        done
+        done;
+        close_in ch
       with
       | _ ->
         close_in ch
