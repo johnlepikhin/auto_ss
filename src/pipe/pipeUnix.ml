@@ -23,7 +23,8 @@ struct
 
   let write_record ~separator oc l =
     output_string oc l;
-    output_char oc separator
+    output_char oc separator;
+    flush oc
 
   let ( >>= ) r fn = fn r
 

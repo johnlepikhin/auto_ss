@@ -7,7 +7,7 @@ module Parser =
 struct
   let get_siteroot username =
     match Os.v with
-    | Os.UNIX -> Filename.concat (Filename.concat "/home/virtwww" username) "http"
+    | Os.UNIX -> Filename.concat ("/home/virtwww/w_" ^ username) "http"
     | Os.Windows -> Filename.concat "d:\\web\\1Gb.ru\\hosted" username
 
   let parse =
