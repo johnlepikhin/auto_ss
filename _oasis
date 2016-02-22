@@ -117,3 +117,10 @@ Executable ss_parse_vsftpd
   MainIs: ss_parse_vsftpd.ml
   BuildDepends: log_parse, common
 
+Executable ss_cache
+  Path: src/utils
+  Install: false
+  CompiledObject: best
+  MainIs: ss_cache.ml
+  BuildDepends: common, pipeline.unix
+
