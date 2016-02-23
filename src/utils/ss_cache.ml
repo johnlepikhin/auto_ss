@@ -1,9 +1,11 @@
 
-let limit = ref 2000
+let limit = ref 100000
 
 let usage = ArgPipeFormat.usageInOut ^ "\nCOMMAND LINE ARGUMENTS:\n"
 
-let args = ArgPipeFormat.argsInOut
+let args = ArgPipeFormat.argsInOut @ [
+    "-l", Arg.Set_int limit, "Cache size (default 100000)";
+  ]
 
 type r = {
   mutable st : Unix.LargeFile.stats;
