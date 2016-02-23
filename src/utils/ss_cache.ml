@@ -12,7 +12,10 @@ type r = {
   mutable last : int64;
 }
 
-let hash = Hashtbl.create 1001
+let () =
+  Arg.parse args (fun _ -> ()) usage
+
+let hash = Hashtbl.create (!limit*2)
 
 let cleanup () =
   if Hashtbl.length hash > !limit then (

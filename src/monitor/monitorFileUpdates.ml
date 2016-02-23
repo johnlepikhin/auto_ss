@@ -19,38 +19,71 @@ let groups_of_regexp =
     | _ ->
       Regexp (regexp s, [||], s)
 
-let result_of_regexp path values rex groups src =
-  let rec map = function
-    | [] -> []
-    | hd :: tl ->
-      try
-        let subs = Pcre.exec ~rex hd in
-        let (values, _) =
-          Array.fold_left (fun (values, pos) name -> (name, Pcre.get_substring subs pos) :: values, pos + 1) (values, 1) groups
-        in
-        ((Filename.concat path hd), values) :: map tl
-      with
-      | _ ->
-        map tl
-  in
-  try
-    Sys.readdir path
-    |> Array.to_list
-    |> map
-  with
-  | _ -> []
+type path = string
 
-let readdir path values = function
-  | Path e ->
-    let path = Filename.concat path e in
-    if Sys.file_exists path then
-      [path, values]
-    else
-      []
-  | Regexp (rex, groups, src) ->
-    result_of_regexp path values rex groups src
+type info = {
+  path : string;
+  st : Unix.LargeFile.stats;
+  pos_begin : int64;
+  pos_end : int64;
+  values : (string * string) list;
+}
+
+type state = (path, info) Hashtbl.t
 
 let getfiles (mask : path_element list) =
+  let h : state = Hashtbl.create 7919 in
+  let result_of_regexp path values rex groups src =
+    let rec map = function
+      | name :: tl -> (
+        try
+          let subs = Pcre.exec ~rex name in
+          let (values, _) =
+            Array.fold_left (fun (values, pos) name -> (name, Pcre.get_substring subs pos) :: values, pos + 1) (values, 1) groups
+          in
+          let path = Filename.concat path name in
+          let st = Unix.LargeFile.stat path in
+          Hashtbl.add h path {
+            path;
+            st;
+            pos_begin = 0L;
+            pos_end = st.Unix.LargeFile.st_size;
+            values;
+          };
+          (path, values) :: map tl
+        with
+        | _ ->
+          map tl
+        )
+      | [] -> []
+    in
+    try
+      Sys.readdir path
+      |> Array.to_list
+      |> map
+    with
+    | _ -> []
+  in
+  
+  let readdir path values = function
+    | Path e -> (
+      let path = Filename.concat path e in
+      try
+        let st = Unix.LargeFile.stat path in
+        Hashtbl.add h path {
+          path;
+          st;
+          pos_begin = 0L;
+          pos_end = st.Unix.LargeFile.st_size;
+          values;
+        };
+        [path, values]
+      with
+      | _ -> []
+      )
+    | Regexp (rex, groups, src) ->
+      result_of_regexp path values rex groups src
+  in
   let rec iter curpath values = function
     | [] ->
       failwith "Path cannot be empty"
@@ -61,34 +94,49 @@ let getfiles (mask : path_element list) =
       |> List.map (fun (path, values) -> iter path values tl)
       |> List.concat
   in
-  iter "" [] mask
+  ignore (iter "" [] mask);
+  h
 
-module Collection = Map.Make (String)
-
+(*
 let statfiles lst =
-  List.fold_left (fun collection (path, values) ->
+  let len = List.length lst in
+  let h = Hashtbl.create (len*2) in
+  List.iter (fun (path, values) ->
       let st = Unix.LargeFile.stat path in
-      Collection.add path (st, 0L, st.Unix.LargeFile.st_size, values) collection
-    ) Collection.empty lst
+      Hashtbl.add h path {
+        path;
+        st;
+        pos_begin = 0L;
+        pos_end = st.Unix.LargeFile.st_size;
+        values;
+      }
+    ) lst;
+  h
+*)
 
-let getdiff prev next =
+let getdiff (prev : state) (next : state) =
   let open Unix.LargeFile in
-  Collection.fold (fun path ((next_st, _, _, values) as next) rcollection ->
+  let r = ref [] in
+  Hashtbl.iter (fun (path : path) nextinfo ->
       try
         (* update file *)
-        let (prev_st, prev_begin, prev_end, values) = Collection.find path prev in
-        if prev_st.st_size > next_st.st_size then
+        let previnfo = Hashtbl.find prev path in
+        if previnfo.st.st_size > nextinfo.st.st_size then
           (* file is zeroed? *)
-          Collection.add path next rcollection
+          r := nextinfo :: !r
         else
-        if prev_st.st_size < next_st.st_size then
+        if previnfo.st.st_size < nextinfo.st.st_size then
           (* file has new lines? *)
-          Collection.add path (next_st, prev_end, next_st.st_size, values) rcollection
+          r := { nextinfo with
+                 pos_begin = previnfo.pos_end;
+                 pos_end = nextinfo.pos_end;
+          } :: !r
         else
           (* file is not changed *)
-          rcollection
+          ()
       with
       | _ ->
         (* this is new file *)
-        Collection.add path next rcollection
-    ) next Collection.empty
+        r := nextinfo :: !r
+    ) next;
+  !r

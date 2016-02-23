@@ -32,31 +32,39 @@ let () =
   let module OUT_FORMAT = (val !ArgPipeFormat.output_format) in
   let module P = PipeUnix.Make (PipeFmtLog.Type) (OUT_FORMAT) (OUT_FORMAT) in
 
-  let output files =
-    Collection.iter (fun path (st, begin_pos, end_pos, values) ->
-        if Int64.sub end_pos begin_pos > 0L then
-          let record = PipeFmtLog.Type.{
-              file = path;
-              begin_pos;
-              end_pos;
-              values;
-            }
-          in
-          P.output stdout (Pipe.Record record)
-      ) files;
+  let output_info info =
+    let module M = MonitorFileUpdates in
+    if Int64.sub info.M.pos_end info.M.pos_begin > 0L then
+      let record = PipeFmtLog.Type.{
+          file = info.path;
+          begin_pos = info.M.pos_begin;
+          end_pos = info.M.pos_end;
+          values = info.values;
+        }
+      in
+      P.output stdout (Pipe.Record record)
+  in
+
+  let output_diff files =
+    List.iter output_info files;
+    flush stdout
+  in
+
+  let output_state state =
+    Hashtbl.iter (fun _ info -> output_info info) state;
     flush stdout
   in
 
   let rec checkUpdates prev =
     Unix.sleep !sleep;
-    let next = getfiles !mask |> statfiles in
+    let next = getfiles !mask in
     let diff = getdiff prev next in
-    output diff;
+    output_diff diff;
     checkUpdates next
   in
 
-  let files = getfiles !mask |> statfiles in
+  let files = getfiles !mask in
   if !sleep == 0 then
-    output files
+    output_state files
   else
     checkUpdates files

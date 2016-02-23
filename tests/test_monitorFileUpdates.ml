@@ -9,7 +9,6 @@ let path = [
 
 let get () =
   getfiles path
-  |> statfiles
 
 let () =
   let l1 = get () in
@@ -17,7 +16,7 @@ let () =
   ignore (read_line ());
   let l2 = get () in
   let diff = getdiff l1 l2 in
-  Collection.iter (fun path (st, pos_begin, pos_end, values) ->
-      let values = List.map (fun (k,v) -> Printf.sprintf "%s=%s" k v) values |> String.concat ", " in
-      Printf.printf "file %s changed, begin=%Li, end=%Li, values: %s\n" path pos_begin pos_end values
+  List.iter (fun info ->
+      let values = List.map (fun (k,v) -> Printf.sprintf "%s=%s" k v) info.values |> String.concat ", " in
+      Printf.printf "file %s changed, begin=%Li, end=%Li, values: %s\n" info.path info.pos_begin info.pos_end values
     ) diff
