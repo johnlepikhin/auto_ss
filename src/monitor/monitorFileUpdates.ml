@@ -31,8 +31,12 @@ type info = {
 
 type state = (path, info) Hashtbl.t
 
+let timeout_mtime = 90000.
+
 let getfiles (mask : path_element list) =
   let h : state = Hashtbl.create 7919 in
+  let now = Unix.time () in
+  
   let result_of_regexp path values rex groups src =
     let rec map = function
       | name :: tl -> (
@@ -42,15 +46,19 @@ let getfiles (mask : path_element list) =
             Array.fold_left (fun (values, pos) name -> (name, Pcre.get_substring subs pos) :: values, pos + 1) (values, 1) groups
           in
           let path = Filename.concat path name in
-          let st = Unix.LargeFile.stat path in
-          Hashtbl.add h path {
-            path;
-            st;
-            pos_begin = 0L;
-            pos_end = st.Unix.LargeFile.st_size;
-            values;
-          };
-          (path, values) :: map tl
+          let open Unix.LargeFile in
+          let st = stat path in
+          if st.st_mtime +. timeout_mtime > now then (
+            Hashtbl.add h path {
+              path;
+              st;
+              pos_begin = 0L;
+              pos_end = st.Unix.LargeFile.st_size;
+              values;
+            };
+            (path, values) :: map tl
+          ) else
+            map tl
         with
         | _ ->
           map tl
@@ -67,19 +75,23 @@ let getfiles (mask : path_element list) =
   
   let readdir path values = function
     | Path e -> (
-      let path = Filename.concat path e in
-      try
-        let st = Unix.LargeFile.stat path in
-        Hashtbl.add h path {
-          path;
-          st;
-          pos_begin = 0L;
-          pos_end = st.Unix.LargeFile.st_size;
-          values;
-        };
-        [path, values]
-      with
-      | _ -> []
+        let path = Filename.concat path e in
+        try
+          let open Unix.LargeFile in
+          let st = stat path in
+          if st.st_mtime +. timeout_mtime > now then (
+            Hashtbl.add h path {
+              path;
+              st;
+              pos_begin = 0L;
+              pos_end = st.st_size;
+              values;
+            };
+            [path, values]
+          ) else
+            []
+        with
+        | _ -> []
       )
     | Regexp (rex, groups, src) ->
       result_of_regexp path values rex groups src
@@ -96,23 +108,6 @@ let getfiles (mask : path_element list) =
   in
   ignore (iter "" [] mask);
   h
-
-(*
-let statfiles lst =
-  let len = List.length lst in
-  let h = Hashtbl.create (len*2) in
-  List.iter (fun (path, values) ->
-      let st = Unix.LargeFile.stat path in
-      Hashtbl.add h path {
-        path;
-        st;
-        pos_begin = 0L;
-        pos_end = st.Unix.LargeFile.st_size;
-        values;
-      }
-    ) lst;
-  h
-*)
 
 let getdiff (prev : state) (next : state) =
   let open Unix.LargeFile in
