@@ -29,6 +29,9 @@ struct
   let ( >>= ) r fn = fn r
 
   let return v = v
+
+  let flush oc =
+    flush oc
 end
 
 module Make = Pipe.Make (IO)

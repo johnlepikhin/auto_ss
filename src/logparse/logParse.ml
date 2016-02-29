@@ -9,6 +9,9 @@ struct
   module PIN = PipeUnix.Make (PipeFmtLog.Type) (IN) (IN)
   module POUT = PipeUnix.Make (PipeFmtMain.Type) (OUT) (OUT)
 
+  let pipe_in = PIN.init stdin stdout
+  let pipe_out = POUT.init stdin stdout
+  
   let iter r =
     let open PipeFmtLog.Type in
     try
@@ -21,7 +24,7 @@ struct
           let record = Parser.parse line r.values in
           match record with
           | Some record ->
-            POUT.output stdout (Pipe.Record record)
+            POUT.output pipe_out (Pipe.Record record)
           | None ->
             ()
         done;
@@ -40,6 +43,6 @@ struct
            iter r
          | Pipe.Meta m ->
            let o = Pipe.Meta m in
-           POUT.output stdout o
-      ) stdin
+           POUT.output pipe_out o
+      ) pipe_in
 end

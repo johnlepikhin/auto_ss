@@ -100,9 +100,10 @@ let main () =
   let module IN_FORMAT = (val !ArgPipeFormat.input_format) in
   let module OUT_FORMAT = (val !ArgPipeFormat.output_format) in
   let module P = PipeLwt.Make (PipeFmtMain.Type) (IN_FORMAT) (OUT_FORMAT) in
+  let pipe = P.init Lwt_io.stdin Lwt_io.stdout in
   P.iter_input
-    (fun pipe ->
-       match pipe with
+    (fun line ->
+       match line with
        | Pipe.Record record ->
          let msgs = ref [] in
          let rec check rec_deepness file =
@@ -137,12 +138,12 @@ let main () =
          in
          check 0 record;
          let output file =
-           P.output Lwt_io.stdout (Pipe.Record file)
+           P.output pipe (Pipe.Record file)
          in
          Lwt_list.iter_s output (List.rev !msgs)
       | _ ->
-        P.output Lwt_io.stdout pipe
-    ) Lwt_io.stdin
+        P.output pipe line
+    ) pipe
 
 let main () =
   let error_cb msg =

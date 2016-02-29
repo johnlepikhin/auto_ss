@@ -48,6 +48,7 @@ let () =
   let module IN_FORMAT = (val !ArgPipeFormat.output_format) in
   let module OUT_FORMAT = (val !ArgPipeFormat.output_format) in
   let module P = PipeUnix.Make (PipeFmtMain.Type) (IN_FORMAT) (OUT_FORMAT) in
+  let pipe = P.init stdin stdout in
   P.iter_input (function
       | Pipe.Record record -> (
           let file = record.PipeFmtMain.Type.file in
@@ -57,7 +58,7 @@ let () =
             try
               let r = Hashtbl.find hash st.st_ino in
               if r.st.st_mtime <> st.st_mtime || r.st.st_size <> st.st_size then
-                P.output stdout (Pipe.Record record);
+                P.output pipe (Pipe.Record record);
               r.last <- get_inc ();
               r.st <- st;
             with
@@ -65,11 +66,11 @@ let () =
               Hashtbl.add hash st.st_ino {
                 st; last = get_inc ()
               };
-              P.output stdout (Pipe.Record record);
+              P.output pipe (Pipe.Record record);
           with
           | _ ->
-            P.output stdout (Pipe.Record record)
+            P.output pipe (Pipe.Record record)
         )
       | Pipe.Meta meta ->
-        P.output stdout (Pipe.Meta meta)
-    ) stdin
+        P.output pipe (Pipe.Meta meta)
+    ) pipe

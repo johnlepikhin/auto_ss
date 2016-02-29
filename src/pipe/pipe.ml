@@ -48,6 +48,7 @@ sig
   
   val read_record_opt : separator : char -> input_channel -> string option t
   val write_record : separator : char -> output_channel -> string -> unit t
+  val flush : output_channel -> unit t
 
   val return: 'a -> 'a t
 end
@@ -61,9 +62,17 @@ struct
   module INFmt = IN (T)
   module OUTFmt = OUT (T)
 
-  let iter_input fn input_channel =
+  type io = {
+    ic : IO.input_channel;
+    oc : IO.output_channel;
+    mutable last_flush : float;
+  }
+
+  let init ic oc = { ic; oc; last_flush = 0.; }
+  
+  let iter_input fn io =
     let rec loop () =
-      read_record_opt ~separator:INFmt.record_separator input_channel
+      read_record_opt ~separator:INFmt.record_separator io.ic
       >>= function
       | None -> return ()
       | Some s ->
@@ -72,6 +81,15 @@ struct
     in
     loop ()
 
-  let output output_channel r =
-    IO.write_record ~separator:OUTFmt.record_separator output_channel @@ OUTFmt.to_string r
+  let flush io =
+    let now = Unix.time () in
+    if io.last_flush +. 1. < now then (
+      io.last_flush <- now;
+      IO.flush io.oc
+    ) else
+      IO.return ()
+  
+  let output io r =
+    IO.write_record ~separator:OUTFmt.record_separator io.oc @@ OUTFmt.to_string r
+    >>= fun () -> flush io
 end

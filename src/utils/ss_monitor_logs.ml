@@ -32,6 +32,8 @@ let () =
   let module OUT_FORMAT = (val !ArgPipeFormat.output_format) in
   let module P = PipeUnix.Make (PipeFmtLog.Type) (OUT_FORMAT) (OUT_FORMAT) in
 
+  let pipe = P.init stdin stdout in
+
   let output_info info =
     let module M = MonitorFileUpdates in
     if Int64.sub info.M.pos_end info.M.pos_begin > 0L then
@@ -42,7 +44,7 @@ let () =
           values = info.values;
         }
       in
-      P.output stdout (Pipe.Record record)
+      P.output pipe (Pipe.Record record)
   in
 
   let output_diff files =
