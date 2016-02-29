@@ -45,7 +45,7 @@ let get_inc =
 
 let () =
   Arg.parse args (fun _ -> ()) usage;
-  let module IN_FORMAT = (val !ArgPipeFormat.output_format) in
+  let module IN_FORMAT = (val !ArgPipeFormat.input_format) in
   let module OUT_FORMAT = (val !ArgPipeFormat.output_format) in
   let module P = PipeUnix.Make (PipeFmtMain.Type) (IN_FORMAT) (OUT_FORMAT) in
   let pipe = P.init stdin stdout in
