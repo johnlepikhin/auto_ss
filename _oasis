@@ -7,9 +7,15 @@ BuildTools: ocamlbuild
 Plugins: META (0.4), DevFiles (0.4)
 Synopsis: Security Scanner
 
+Library ss
+  FindlibName: ss
+  Path: src
+  Modules: 
+
 Library pipeline
+  FindlibName: pipeline
+  FindlibParent: ss
   Path: src/pipe
-  Install: false
   Modules: Pipe, PipeShell, PipeNullChar, PipeFmtMain
   BuildDepends: shell_escape, pcre
 
@@ -17,32 +23,34 @@ Library pipeline_lwt
   Path: src/pipe
   FindlibName: lwt
   FindlibParent: pipeline
-  Install: false
   Modules: PipeLwt
-  BuildDepends: pipeline, lwt, lwt.unix
+  BuildDepends: ss.pipeline, lwt, lwt.unix
 
 Library pipeline_unix
   Path: src/pipe
   FindlibName: unix
   FindlibParent: pipeline
-  Install: false
   Modules: PipeLwt
-  BuildDepends: pipeline, unix
+  BuildDepends: ss.pipeline, unix
 
 Library common
   Path: src/common
-  Install: false
+  FindlibName: common
+  FindlibParent: ss
   Modules: Os, ArgPipeFormat
-  BuildDepends: pipeline
+  BuildDepends: ss.pipeline
 
 Library ss_script
   Path: src/script
+  FindlibName: script
+  FindlibParent: ss
   Modules: AstMapper, SSScript
   BuildDepends: compiler-libs.bytecomp, compiler-libs.common, compiler-libs, pcre, iconv, ocaml_scripting
 
 Library ss_config
   Path: src/config
-  Install: false
+  FindlibName: config
+  FindlibParent: ss
   Modules: SSConfig_sig, SSConfig, SSConfigFile, SSConfigDir, SSConfigArg
   BuildDepends: lwt, unix, pcre
 
@@ -56,19 +64,19 @@ Library log_parse
   Path: src/logparse
   Install: false
   Modules: LogParse
-  BuildDepends: unix, pcre, pipeline, common
+  BuildDepends: unix, pcre, ss.pipeline, ss.common
 
 Executable test_pipeShellLwt
   Path: tests
   Install: false
   MainIs: test_pipeShellLwt.ml
-  BuildDepends: pipeline, pipeline.lwt
+  BuildDepends: ss.pipeline, ss.pipeline.lwt
 
 Executable test_config
   Path: tests
   Install: false
   MainIs: test_config.ml
-  BuildDepends: lwt, lwt.unix, ss_config, ss_script
+  BuildDepends: lwt, lwt.unix, ss.config, ss.script
 
 Executable test_monitor_file_updates
   Path: tests
@@ -80,14 +88,14 @@ Executable mapper_ppx
   Path: src/utils
   Install: false
   MainIs: mapper_ppx.ml
-  BuildDepends: ss_script, iconv
+  BuildDepends: ss.script, iconv
 
 Executable ss
   Path: src/utils
   Install: false
   CompiledObject: best
   MainIs: ss.ml
-  BuildDepends: ss_config, lwt, lwt.unix, pipeline.lwt, ss_script, common
+  BuildDepends: ss.config, lwt, lwt.unix, ss.pipeline.lwt, ss.script, ss.common
 
 Executable ssconfig_of_manul
   Path: src/utils
@@ -101,26 +109,26 @@ Executable ss_monitor_logs
   Install: false
   CompiledObject: best
   MainIs: ss_monitor_logs.ml
-  BuildDepends: monitor_file_updates, unix, pipeline.unix, common
+  BuildDepends: monitor_file_updates, unix, ss.pipeline.unix, ss.common
 
 Executable ss_parse_apache
   Path: src/utils
   Install: false
   CompiledObject: best
   MainIs: ss_parse_apache.ml
-  BuildDepends: log_parse, common
+  BuildDepends: log_parse, ss.common
 
 Executable ss_parse_vsftpd
   Path: src/utils
   Install: false
   CompiledObject: best
   MainIs: ss_parse_vsftpd.ml
-  BuildDepends: log_parse, common
+  BuildDepends: log_parse, ss.common
 
 Executable ss_cache
   Path: src/utils
   Install: false
   CompiledObject: best
   MainIs: ss_cache.ml
-  BuildDepends: common, pipeline.unix
+  BuildDepends: ss.common, ss.pipeline.unix
 
