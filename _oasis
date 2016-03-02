@@ -30,7 +30,7 @@ Library pipeline_unix
   Path: src/pipe
   FindlibName: unix
   FindlibParent: pipeline
-  Modules: PipeLwt
+  Modules: PipeUnix
   BuildDepends: ss.pipeline, unix
 
 Library common
