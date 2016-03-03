@@ -17,7 +17,7 @@ Library pipeline
   FindlibParent: ss
   Path: src/pipe
   Modules: Pipe, PipeShell, PipeNullChar, PipeFmtMain, PipeFindPrint0, PipeHuman
-  BuildDepends: shell_escape, pcre
+  BuildDepends: shell_escape, pcre, unix
 
 Library pipeline_lwt
   Path: src/pipe
