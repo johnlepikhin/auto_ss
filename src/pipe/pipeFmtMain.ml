@@ -38,7 +38,7 @@ struct
   let meta_of_line s = s
 
   let fields_of_record r =
-    r.file :: r.alert :: r.remote_ip :: r.tail
+    r.file :: r.alert :: r.remote_ip :: r.username :: r.tail
 
   let line_of_meta r =
     r
