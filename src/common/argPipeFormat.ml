@@ -1,7 +1,7 @@
 
 
-let input_format = ref (module PipeNullChar.Make : Pipe.PIPE_FORMAT)
-let output_format = ref (module PipeNullChar.Make : Pipe.PIPE_FORMAT)
+let input_format = ref (module PipeHuman.Make : Pipe.PIPE_FORMAT)
+let output_format = ref (module PipeHuman.Make : Pipe.PIPE_FORMAT)
 
 let list = [
   "shellescape", (module PipeShell.Make : Pipe.PIPE_FORMAT), "Bash-compatible escapes; fields separated by <TAB> and records by <NEWLINE>";

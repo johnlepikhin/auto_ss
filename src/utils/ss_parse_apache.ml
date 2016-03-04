@@ -36,6 +36,7 @@ end
 
 let () =
   Arg.parse args (fun _ -> ()) usage;
+  let module IN_FORMAT = (val !ArgPipeFormat.input_format) in
   let module OUT_FORMAT = (val !ArgPipeFormat.output_format) in
-  let module Processor = LogParse.Make (PipeUnix.IO) (PipeHuman.Make) (OUT_FORMAT) (Parser) in
+  let module Processor = LogParse.Make (PipeUnix.IO) (IN_FORMAT) (OUT_FORMAT) (Parser) in
   Processor.process ()
