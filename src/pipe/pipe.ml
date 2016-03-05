@@ -94,4 +94,7 @@ struct
   let output io r =
     IO.write_record ~separator:OUTFmt.record_separator io.oc @@ OUTFmt.to_string r
     >>= fun () -> flush io
+
+  let in_format_name = INFmt.name
+  let out_format_name = OUTFmt.name
 end

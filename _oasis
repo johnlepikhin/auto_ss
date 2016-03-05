@@ -132,3 +132,10 @@ Executable ss_cache
   MainIs: ss_cache.ml
   BuildDepends: ss.common, ss.pipeline.unix
 
+Executable ss_parallel
+  Path: src/utils
+  Install: false
+  CompiledObject: best
+  MainIs: ss_parallel.ml
+  BuildDepends: ss.common, ss.pipeline.lwt
+
