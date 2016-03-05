@@ -35,6 +35,8 @@ module type PIPE_FORMAT =
     val to_string: (T.record, T.meta) pipe -> string
 
     val record_separator: char
+
+    val name: string
   end
 
 module type IO =

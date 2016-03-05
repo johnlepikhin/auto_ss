@@ -42,4 +42,5 @@ struct
   
   let record_separator = '\n'
 
+  let name = "human"
 end

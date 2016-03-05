@@ -22,4 +22,6 @@ struct
       T.line_of_meta r
   
   let record_separator = '\000'
+
+  let name = "findprint0"
 end

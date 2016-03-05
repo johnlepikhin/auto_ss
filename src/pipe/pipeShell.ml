@@ -29,4 +29,6 @@ struct
       |> ShellEscape.escape_string
 
   let record_separator = '\n'
+
+  let name = "shellescape"
 end

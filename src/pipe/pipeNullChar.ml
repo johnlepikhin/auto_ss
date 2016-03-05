@@ -45,4 +45,6 @@ struct
       |> escape
   
   let record_separator = '\000'
+
+  let name = "nullchar"
 end
