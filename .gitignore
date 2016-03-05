@@ -13,3 +13,4 @@ src/*/*.mllib
 src/*/*.mldylib
 tests/matchedfile.php
 tests/unmatchedfile
+distribute.sh
