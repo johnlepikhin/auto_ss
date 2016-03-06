@@ -16,6 +16,7 @@ type prepared = {
 }
 
 type fileinfo = {
+  stat : Unix.LargeFile.stats;
   filename : string;
   body : string option lazy_t;
   filename_regexp_cache : (int, bool) Hashtbl.t;
@@ -45,6 +46,7 @@ let readfile filename =
 
 let fileinfo filename =
   {
+    stat = Unix.LargeFile.stat filename;
     filename;
     body = readfile filename;
     filename_regexp_cache = Hashtbl.create 101;
@@ -179,12 +181,7 @@ let run ?(debug=false) ~notify_cb ~queuefile_cb ~script fileinfo =
     Sys.file_exists file
   in
   let filesize () =
-    try
-      let open Unix.LargeFile in
-      let s = stat fileinfo.filename in
-      s.st_size
-    with
-    | _ -> 0L
+    fileinfo.stat.Unix.LargeFile.st_size
   in
   
   let notify_ccall =

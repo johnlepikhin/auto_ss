@@ -110,30 +110,35 @@ let main () =
            if rec_deepness > 10 then
              ()
            else (
-             let fileinfo = SSScript.fileinfo file.PipeFmtMain.Type.file in
-             let has_output = ref false in
-             let register_output fileinfo alert =
-               msgs := PipeFmtMain.Type.{ file with alert } :: !msgs;
-               has_output := true;
-             in
-             let queuefile_cb fileinfo filename =
-               let dir = Filename.dirname fileinfo.SSScript.filename in
-               let file = Printf.sprintf "%s%s%s" dir Filename.dir_sep filename in
-               let file = PipeFmtMain.Type.{
-                   file;
-                   alert = "";
-                   remote_ip = record.remote_ip;
-                   username = record.username;
-                   tail = []
-                 }
+             try
+               let fileinfo = SSScript.fileinfo file.PipeFmtMain.Type.file in
+               let has_output = ref false in
+               let register_output fileinfo alert =
+                 msgs := PipeFmtMain.Type.{ file with alert } :: !msgs;
+                 has_output := true;
                in
-               check (rec_deepness+1) file
-             in
+               let queuefile_cb fileinfo filename =
+                 let dir = Filename.dirname fileinfo.SSScript.filename in
+                 let file = Printf.sprintf "%s%s%s" dir Filename.dir_sep filename in
+                 let file = PipeFmtMain.Type.{
+                     file;
+                     alert = "";
+                     remote_ip = record.remote_ip;
+                     username = record.username;
+                     tail = []
+                   }
+                 in
+                 check (rec_deepness+1) file
+               in
 
-             SSScript.run ~notify_cb:register_output ~queuefile_cb ~script fileinfo;
+               SSScript.run ~notify_cb:register_output ~queuefile_cb ~script fileinfo;
 
-             if not (PipeFmtMain.Type.file_is_empty file) || not !has_output then
-               register_output fileinfo file.PipeFmtMain.Type.alert
+               if not (PipeFmtMain.Type.file_is_empty file) || not !has_output then
+                 register_output fileinfo file.PipeFmtMain.Type.alert
+             with
+             | _ ->
+               (* file not found *)
+               msgs := record :: !msgs
            )
          in
          check 0 record;
