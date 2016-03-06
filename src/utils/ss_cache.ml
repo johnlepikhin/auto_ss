@@ -8,14 +8,14 @@ let args = ArgPipeFormat.argsInOut @ [
   ]
 
 type r = {
-  mutable st : Unix.LargeFile.stats;
+  mutable st : Unix.LargeFile.stats option;
   mutable last : int64;
 }
 
 let () =
   Arg.parse args (fun _ -> ()) usage
 
-let hash = Hashtbl.create (!limit*2)
+let hash : (string, r) Hashtbl.t = Hashtbl.create (!limit*2)
 
 let cleanup () =
   if Hashtbl.length hash > !limit then (
@@ -37,9 +37,11 @@ let cleanup () =
 
 let get_inc =
   let i = ref 0L in
+  (* Cleanup cache every limit/5 cache updates *)
+  let cache_overhead = Int64.of_int (!limit / 5) in
   fun () ->
     i := Int64.succ !i;
-    if Int64.rem !i 1000L = 0L then
+    if Int64.rem !i cache_overhead = 0L then
       cleanup ();
     !i
 
@@ -52,24 +54,46 @@ let () =
   P.iter_input (function
       | Pipe.Record record -> (
           let file = record.PipeFmtMain.Type.file in
-          try
-            let open Unix.LargeFile in
-            let st = stat file in
+          let stored =
             try
-              let r = Hashtbl.find hash st.st_ino in
-              if r.st.st_mtime <> st.st_mtime || r.st.st_size <> st.st_size then
-                P.output pipe (Pipe.Record record);
-              r.last <- get_inc ();
-              r.st <- st;
+              Some (Hashtbl.find hash file)
             with
-            | _ ->
-              Hashtbl.add hash st.st_ino {
-                st; last = get_inc ()
-              };
-              P.output pipe (Pipe.Record record);
-          with
-          | _ ->
-            P.output pipe (Pipe.Record record)
+            | _ -> None
+          in
+          let current =
+            try
+              Some (Unix.LargeFile.stat file)
+            with
+            | _ -> None
+          in
+          let pass_required =
+            match stored, current with
+            (* new cache entry *)
+            | None, Some _ ->
+              true
+
+            (* new cache entry for nonexistent file *)
+            | None, None ->
+              false
+
+            (* file marked in cache as nonexistent while it actually exists *)
+            | Some { st = None }, Some _ ->
+              true
+
+            (* file marked in cache as nonexistent and it actually doesn't exist *)
+            | Some { st = None }, None
+            (* cached file entry was deleted *)
+            | Some { st = Some _ }, None ->
+              false
+
+            (* check if file changed *)
+            | Some { st = Some stored }, Some current ->
+              let open Unix.LargeFile in
+              stored.st_mtime <> current.st_mtime || stored.st_size <> current.st_size
+          in
+          Hashtbl.replace hash file { st = current; last = get_inc () };
+          if pass_required then
+            P.output pipe (Pipe.Record record);
         )
       | Pipe.Meta meta ->
         P.output pipe (Pipe.Meta meta)
