@@ -67,27 +67,18 @@ let () =
             | _ -> None
           in
           let pass_required =
-            match stored, current with
-            (* new cache entry *)
-            | None, Some _ ->
-              true
-
-            (* new cache entry for nonexistent file *)
-            | None, None ->
+            match current, stored with
+            (* file doesn't exist *)
+            | None, _ ->
               false
 
-            (* file marked in cache as nonexistent while it actually exists *)
-            | Some { st = None }, Some _ ->
+            (* cache has no info on this file *)
+            | Some _, None
+            | Some _, Some { st = None } ->
               true
 
-            (* file marked in cache as nonexistent and it actually doesn't exist *)
-            | Some { st = None }, None
-            (* cached file entry was deleted *)
-            | Some { st = Some _ }, None ->
-              false
-
-            (* check if file changed *)
-            | Some { st = Some stored }, Some current ->
+            (* compare file info with cache record *)
+            | Some current, Some { st = Some stored } ->
               let open Unix.LargeFile in
               stored.st_mtime <> current.st_mtime || stored.st_size <> current.st_size
           in
