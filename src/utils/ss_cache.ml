@@ -45,6 +45,28 @@ let get_inc =
       cleanup ();
     !i
 
+let check_if_updated current file =
+  let stored =
+    try
+      Some (Hashtbl.find hash file)
+    with
+    | _ -> None
+  in
+  match current, stored with
+  (* file doesn't exist *)
+  | None, _ ->
+    false
+
+  (* cache has no info on this file *)
+  | Some _, None
+  | Some _, Some { st = None } ->
+    true
+
+  (* compare file info with cache record *)
+  | Some current, Some { st = Some stored } ->
+    let open Unix.LargeFile in
+    stored.st_mtime <> current.st_mtime || stored.st_size <> current.st_size
+
 let () =
   Arg.parse args (fun _ -> ()) usage;
   let module IN_FORMAT = (val !ArgPipeFormat.input_format) in
@@ -54,36 +76,15 @@ let () =
   P.iter_input (function
       | Pipe.Record record -> (
           let file = record.PipeFmtMain.Type.file in
-          let stored =
-            try
-              Some (Hashtbl.find hash file)
-            with
-            | _ -> None
-          in
           let current =
             try
               Some (Unix.LargeFile.stat file)
             with
             | _ -> None
           in
-          let pass_required =
-            match current, stored with
-            (* file doesn't exist *)
-            | None, _ ->
-              false
-
-            (* cache has no info on this file *)
-            | Some _, None
-            | Some _, Some { st = None } ->
-              true
-
-            (* compare file info with cache record *)
-            | Some current, Some { st = Some stored } ->
-              let open Unix.LargeFile in
-              stored.st_mtime <> current.st_mtime || stored.st_size <> current.st_size
-          in
+          let updated = check_if_updated current file in
           Hashtbl.replace hash file { st = current; last = get_inc () };
-          if pass_required then
+          if updated then
             P.output pipe (Pipe.Record record);
         )
       | Pipe.Meta meta ->
