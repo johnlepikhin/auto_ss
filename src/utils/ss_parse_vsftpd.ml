@@ -21,15 +21,15 @@ struct
         let fpath = Pcre.get_substring subs 3 in
         let siteroot = get_siteroot username in
         let file = Filename.concat siteroot fpath in
-        Some PipeFmtMain.Type.{
+        PipeFmtMain.Type.[{
             file;
             alert = "";
             remote_ip;
             username;
             tail = [];
-          }
+          }]
       with
-      | _ -> None
+      | _ -> []
 end
 
 
