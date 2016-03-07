@@ -10,6 +10,15 @@ struct
     | Os.UNIX -> Filename.concat ("/home/virtwww/w_" ^ username) "http"
     | Os.Windows -> Filename.concat "d:\\web\\1Gb.ru\\hosted" username
 
+  let index_files = [
+    "/index.htm";
+    "/index.html";
+    "/index.php";
+    "/index.php3";
+    "/index.php4";
+    "/index.php5";
+  ]
+  
   let parse =
     let open Pcre in
     (* 82.145.210.159 - - [16/Oct/2011:01:05:16 +0400] "GET /favicon.ico HTTP/1.1" 200 *)
@@ -21,16 +30,24 @@ struct
         let username = List.assoc "username" values in
         let uri = get_substring subs 2 in
         let full_fpath = get_siteroot username in
-        let file = full_fpath ^ uri in
-        Some PipeFmtMain.Type.{
-            file;
-            alert = "";
-            remote_ip;
-            username;
-            tail = [];
-          }
+        let uris =
+          if uri = "/" then
+            index_files
+          else
+            [uri]
+        in
+        List.map (fun uri ->
+            let file = full_fpath ^ uri in
+            PipeFmtMain.Type.{
+                file;
+                alert = "";
+                remote_ip;
+                username;
+                tail = [];
+            }
+          ) uris
       with
-      | _ -> None
+      | _ -> []
 end
 
 
