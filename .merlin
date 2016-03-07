@@ -9,5 +9,6 @@ PKG xmlaccess
 PKG xml-light
 PKG compiler-libs.common
 PKG ocaml_scripting
+PKG cryptokit
 PKG pcre
 

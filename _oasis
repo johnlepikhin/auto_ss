@@ -130,7 +130,7 @@ Executable ss_cache
   Install: false
   CompiledObject: best
   MainIs: ss_cache.ml
-  BuildDepends: ss.common, ss.pipeline.unix
+  BuildDepends: ss.common, ss.pipeline.unix, cryptokit
 
 Executable ss_parallel
   Path: src/utils
