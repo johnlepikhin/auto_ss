@@ -1,7 +1,7 @@
 
 module type PARSER =
 sig
-  val parse: string -> (string * string) list -> PipeFmtMain.Type.record option
+  val parse: string -> (string * string) list -> PipeFmtMain.Type.record list
 end
 
 module Make (IO : Pipe.IO) (IN : Pipe.PIPE_FORMAT) (OUT : Pipe.PIPE_FORMAT) (Parser : PARSER) =
@@ -21,12 +21,8 @@ struct
         let end_pos = Int64.to_int r.end_pos in
         while pos_in ch < end_pos do
           let line = input_line ch in
-          let record = Parser.parse line r.values in
-          match record with
-          | Some record ->
-            POUT.output pipe_out (Pipe.Record record)
-          | None ->
-            ()
+          Parser.parse line r.values
+          |> List.iter (fun record -> POUT.output pipe_out (Pipe.Record record))
         done;
         close_in ch
       with
