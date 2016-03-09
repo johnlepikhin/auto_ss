@@ -16,29 +16,15 @@ Library pipeline
   FindlibName: pipeline
   FindlibParent: ss
   Path: src/pipe
-  Modules: Pipe, PipeShell, PipeNullChar, PipeFmtMain, PipeFindPrint0, PipeHuman
-  BuildDepends: shell_escape, pcre, unix
-
-Library pipeline_lwt
-  Path: src/pipe
-  FindlibName: lwt
-  FindlibParent: pipeline
-  Modules: PipeLwt
-  BuildDepends: ss.pipeline, lwt, lwt.unix
-
-Library pipeline_unix
-  Path: src/pipe
-  FindlibName: unix
-  FindlibParent: pipeline
-  Modules: PipeUnix
-  BuildDepends: ss.pipeline, unix
+  Modules: PipeFmtMain
+  BuildDepends: typed_pipes
 
 Library common
   Path: src/common
   FindlibName: common
   FindlibParent: ss
   Modules: Os, ArgPipeFormat
-  BuildDepends: ss.pipeline
+  BuildDepends: typed_pipes.unix
 
 Library ss_script
   Path: src/script
@@ -66,12 +52,6 @@ Library log_parse
   Modules: LogParse
   BuildDepends: unix, pcre, ss.pipeline, ss.common
 
-Executable test_pipeShellLwt
-  Path: tests
-  Install: false
-  MainIs: test_pipeShellLwt.ml
-  BuildDepends: ss.pipeline, ss.pipeline.lwt
-
 Executable test_config
   Path: tests
   Install: false
@@ -95,7 +75,7 @@ Executable ss
   Install: false
   CompiledObject: best
   MainIs: ss.ml
-  BuildDepends: ss.config, lwt, lwt.unix, ss.pipeline.lwt, ss.script, ss.common
+  BuildDepends: ss.config, lwt, lwt.unix, typed_pipes.lwt, ss.pipeline, ss.script, ss.common
 
 Executable ssconfig_of_manul
   Path: src/utils
@@ -109,7 +89,7 @@ Executable ss_monitor_logs
   Install: false
   CompiledObject: best
   MainIs: ss_monitor_logs.ml
-  BuildDepends: monitor_file_updates, unix, ss.pipeline.unix, ss.common
+  BuildDepends: monitor_file_updates, unix, typed_pipes.unix, ss.common
 
 Executable ss_parse_apache
   Path: src/utils
@@ -130,12 +110,12 @@ Executable ss_cache
   Install: false
   CompiledObject: best
   MainIs: ss_cache.ml
-  BuildDepends: ss.common, ss.pipeline.unix, cryptokit
+  BuildDepends: ss.common, typed_pipes.unix, cryptokit
 
 Executable ss_parallel
   Path: src/utils
   Install: false
   CompiledObject: best
   MainIs: ss_parallel.ml
-  BuildDepends: ss.common, ss.pipeline.lwt
+  BuildDepends: ss.common, typed_pipes.lwt
 
