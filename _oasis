@@ -23,8 +23,8 @@ Library common
   Path: src/common
   FindlibName: common
   FindlibParent: ss
-  Modules: Os, ArgPipeFormat
-  BuildDepends: typed_pipes.unix
+  Modules: Os
+  BuildDepends: typed_pipes.unix, typed_pipes.arg
 
 Library ss_script
   Path: src/script
