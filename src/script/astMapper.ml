@@ -7,6 +7,18 @@ open Longident
 
 let exp_construct loc n v = Exp.construct ~loc (Location.mkloc (Lident n) loc) v
 
+let mklist loc lst =
+  let rec aux = function
+    | [] -> exit 1
+    | hd :: [] ->
+      exp_construct loc "::" (Some (Exp.tuple ~loc [hd; exp_construct loc "[]" None]))
+    | hd :: tl ->
+      exp_construct loc "::" (Some (Exp.tuple ~loc [hd; aux tl]))
+  in
+  match lst with
+  | [] -> exp_construct loc "[]" None
+  | lst -> aux lst
+
 let loc_error ~loc msg =
   let err = Location.error ~loc msg in
   raise (Location.Error err)
@@ -58,12 +70,14 @@ let cflags_of_list = function
         loc_error ~loc (Printf.sprintf "Empty list '()' or Pcre.cflags list expected: (i m ...). Available flags: %s" cflags_descr)
     )
 
-let map_regexp ~register_regexp ~loc ~fname ~flags ~args () =
-  let id = register_regexp ~fname ~flags args in
-
-  let id = Exp.constant ~loc (Const_int id) in
-  let apply_name = Exp.ident ~loc (Location.mkloc (Lident ("match_" ^ fname)) loc) in
-  id, Exp.apply ~loc apply_name ["", id]
+let expr_of_cflag ~loc = function
+  | `CASELESS -> Exp.variant ~loc "CASELESS" None
+  | `MULTILINE -> Exp.variant ~loc "MULTILINE" None
+  | `DOTALL -> Exp.variant ~loc "DOTALL" None
+  | `EXTENDED -> Exp.variant ~loc "EXTENDED" None
+  | `UTF8 -> Exp.variant ~loc "UTF8" None
+  | _ ->
+    loc_error ~loc "Unsupported Pcre cflag"
 
 let split_regexp_args ?flags ~loc ~fname = function
   | []
@@ -88,7 +102,41 @@ let composition_of_list ~loc ~fn = function
         ]
       ) hd tl
 
-let my_mapper register_regexp =
+let generator =
+  let id = ref 0 in
+  fun () ->
+    incr id;
+    !id
+
+type descr = {
+  regexps : string list;
+  loc : Location.t;
+  flags : Pcre.cflag list;
+  name : string;
+}
+
+let my_mapper =
+  let reg_regexps = ref [] in
+  let register_regexp ~fname ~flags ~loc regexps =
+    let id = generator () in
+    let name = Printf.sprintf "__regexp_%s_%i" fname id in
+    let regexp = {
+      regexps;
+      loc;
+      flags;
+      name;
+    } in
+    reg_regexps := regexp :: !reg_regexps;
+    id, name
+  in
+  let map_regexp ~loc ~fname ~flags ~args () =
+    let id, name = register_regexp ~fname ~flags ~loc args in
+    let name = Exp.ident ~loc (Location.mkloc (Lident name) loc) in
+    let context = Exp.ident ~loc (Location.mkloc (Lident "context") loc) in
+    let fn_name = Longident.parse ("SSScript.External.match_" ^ fname) in
+    let apply_name = Exp.ident ~loc (Location.mkloc fn_name loc) in
+    id, Exp.apply ~loc apply_name ["", name; "", context]
+  in
   let expr_mapper mapper = function
     | {
       pexp_desc = Pexp_apply ({
@@ -101,14 +149,14 @@ let my_mapper register_regexp =
         | "bodymask" ->
           let flags, args = split_regexp_args ~loc ~fname args in
           let args = strings_of_args fname args in
-          let (_, expr) = map_regexp ~register_regexp ~loc ~fname ~flags ~args () in
+          let (_, expr) = map_regexp ~loc ~fname ~flags ~args () in
           expr
         | "charsetbodymask" -> (
           let args = strings_of_args fname args in
           match args with
           | src :: dst :: args ->
             let args = List.map (Iconv.convert ~src ~dst) args in
-            let (_, expr) = map_regexp ~register_regexp ~loc ~fname:"bodymask" ~flags:[] ~args () in
+            let (_, expr) = map_regexp ~loc ~fname:"bodymask" ~flags:[] ~args () in
             expr
           | _ ->
             loc_error ~loc (Printf.sprintf "%s usage: %s \"src-charset\" \"dst-charset\" \"regexp1\" \"regexp2\" ..." fname fname)
@@ -121,7 +169,7 @@ let my_mapper register_regexp =
                 try
                   let args = List.map (Iconv.convert ~src:"UTF-8" ~dst) args in
                   let id, expr =
-                    map_regexp ~register_regexp ~loc ~fname:"bodymask" ~flags:[] ~args ()
+                    map_regexp ~loc ~fname:"bodymask" ~flags:[] ~args ()
                   in
                   if List.mem id !ids then
                     rlst
@@ -140,9 +188,33 @@ let my_mapper register_regexp =
         | _ ->
           default_mapper.expr mapper x
       )
-
-    | x -> default_mapper.expr mapper x;
+    | x -> default_mapper.expr mapper x
+  in
+  let structure_mapper mapper = function
+    | x ->
+      let tail = default_mapper.structure mapper x in
+      let regexp_mapper r =
+        let loc = r.loc in
+        let fn = Exp.ident ~loc (Location.mkloc (Ldot ((Lident "Pcre"), "regexp_or")) loc) in
+        let subrex_mapper sr =
+          Ast_helper.Exp.constant ~loc (Const_string (sr, None))
+        in
+        let sub_regexps = List.map subrex_mapper r.regexps in
+        let regexps = mklist loc sub_regexps in
+        let flags =
+          List.map (expr_of_cflag ~loc) r.flags
+          |> mklist loc
+        in
+        let binding =
+          Exp.apply ~loc fn ["flags", flags; "", regexps]
+          |> Vb.mk ~loc (Pat.var (Location.mkloc r.name loc))
+        in
+        Str.value ~loc Nonrecursive [binding]
+      in
+      let vals = List.rev !reg_regexps |> List.map regexp_mapper in
+      vals @ tail
   in
   { Ast_mapper.default_mapper with
     expr = expr_mapper;
+    structure = structure_mapper;
   }

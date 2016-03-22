@@ -1,14 +1,18 @@
 S src/**
 B _build/**
-PKG sexplib
 PKG lwt
 PKG lwt.unix
+PKG lwt.ppx
 PKG shell_escape
 PKG iconv
 PKG xmlaccess
 PKG xml-light
-PKG compiler-libs.common
-PKG ocaml_scripting
 PKG cryptokit
+PKG typed_pipes
+PKG typed_pipes.lwt
+PKG typed_pipes.unix
+PKG typed_pipes.arg
 PKG pcre
-
+PKG cohttp
+PKG cohttp.lwt
+PKG compiler-libs.common

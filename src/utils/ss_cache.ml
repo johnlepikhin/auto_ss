@@ -7,9 +7,6 @@ let args = ArgPipeFormat.argsInOut @ [
     "-l", Arg.Set_int limit, "Cache size (default 100000)";
   ]
 
-let () =
-  Arg.parse args (fun _ -> ()) usage
-
 type stat = {
   mtime : float;
   size : int64;

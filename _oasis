@@ -1,6 +1,6 @@
 OASISFormat: 0.4
 Name: security_scanner
-Version: 2.1
+Version: 2.3
 License: BSD-3-clause
 Authors: Evgenii Lepikhin
 BuildTools: ocamlbuild
@@ -30,8 +30,8 @@ Library ss_script
   Path: src/script
   FindlibName: script
   FindlibParent: ss
-  Modules: AstMapper, SSScript
-  BuildDepends: compiler-libs.bytecomp, compiler-libs.common, compiler-libs, pcre, iconv, ocaml_scripting
+  Modules: SSScript, SSExternals, SSExternalLoad, AstMapper
+  BuildDepends: pcre, iconv, dynlink, lwt, cohttp, cohttp.lwt, lwt.ppx, compiler-libs.common
 
 Library ss_config
   Path: src/config
@@ -52,11 +52,18 @@ Library log_parse
   Modules: LogParse
   BuildDepends: unix, pcre, ss.pipeline, ss.common
 
+Library test_config_plugin
+  Path: tests
+  Install: false
+  Modules: Test_config_plugin
+  BuildDepends: ss.script
+
 Executable test_config
   Path: tests
   Install: false
   MainIs: test_config.ml
-  BuildDepends: lwt, lwt.unix, ss.config, ss.script
+  CompiledObject: best
+  BuildDepends: lwt, lwt.unix, ss.config, ss.script, test_config_plugin
 
 Executable test_monitor_file_updates
   Path: tests
@@ -64,18 +71,28 @@ Executable test_monitor_file_updates
   MainIs: test_monitorFileUpdates.ml
   BuildDepends: monitor_file_updates
 
-Executable mapper_ppx
+
+Library ppx_ssscript
   Path: src/utils
-  Install: false
+  Modules: Mapper_ppx
+  FindlibName: ppx
+  FindlibParent: ss_script
+  XMETAExtraLines:  ppx = "ppx_ssscript"
+  XMETARequires: bitstring, compiler-libs.common
+  BuildDepends: compiler-libs.common, iconv
+
+Executable ppx_ssscript
+  Path: src/utils
   MainIs: mapper_ppx.ml
-  BuildDepends: ss.script, iconv
+  BuildDepends: compiler-libs.common, iconv
+  CompiledObject: best
 
 Executable ss
   Path: src/utils
   Install: false
   CompiledObject: best
   MainIs: ss.ml
-  BuildDepends: ss.config, lwt, lwt.unix, typed_pipes.lwt, ss.pipeline, ss.script, ss.common
+  BuildDepends: ss.config, lwt, lwt.unix, lwt.ppx, typed_pipes.lwt, ss.pipeline, ss.script, ss.common
 
 Executable ssconfig_of_manul
   Path: src/utils

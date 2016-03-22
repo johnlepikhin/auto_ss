@@ -5,11 +5,18 @@ struct
 
   let get params =
     let folder (is_value, rlst) elt =
-      if elt = "--script" then
+      if elt = "-I" then
         (true, rlst)
       else
       if is_value then
-        (false, (SSConfig_sig.Argument, elt) :: rlst)
+        let rule = Printf.sprintf "
+SSExternals.register (module (struct
+  let check context =
+    if (%s) then SSScript.External.notify context \"Inline rule matches\"
+end))
+" elt
+        in
+        (false, (SSConfig_sig.Argument, rule) :: rlst)
       else
         (false, rlst)
     in

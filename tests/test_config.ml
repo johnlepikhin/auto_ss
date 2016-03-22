@@ -13,15 +13,13 @@ let queuefile_cb fileinfo filename =
   Printf.printf "Queue file: %s\n" filename
 
 let main =
-  SSConfig.get configs
-  >>= fun scripts ->
-  let script =
-    List.map (fun (domain, script) -> (SSConfig_sig.string_of_domain domain), script) scripts
-    |> SSScript.prepare
-  in
-  let filename = "tests/matchedfile" in
-  let fileinfo = SSScript.fileinfo filename in
-  let () = SSScript.run ~notify_cb ~queuefile_cb ~script fileinfo in
+  SSExternalLoad.load_cmxs "./_build/tests/test_config_plugin.cmxs"
+  >>= fun () ->
+  
+  let filename = "tests/matchedfile.php" in
+  SSScript.External.set_notify notify_cb;
+  SSScript.External.set_queuefile queuefile_cb;
+  let () = SSExternals.run filename in
   return ()
   
 let () =

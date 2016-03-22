@@ -3,15 +3,25 @@ let configReaders = ref [
   "arg";
 ]
 
+let compile_farm = ref [
+    "127.0.0.1:800"
+  ]
+
+let set_compile_farm =
+  let rex = Pcre.regexp "," in
+  fun s ->
+    compile_farm := Pcre.split ~rex s
+
 let args = ArgPipeFormat.argsInOut @ Arg.[
     "-r", String (fun s -> configReaders := s :: !configReaders), "Add config new reader";
-    "--script", String (fun _ -> ()), "Pass additional rule";
+    "-I", String (fun _ -> ()), "Inline check with specified condition";
+    "-c", String set_compile_farm, "Location of compile farm. For example: 127.0.0.1:80,farm.localnet:8080 (default 127.0.0.1:800)"
 ]
 
 let usage = "
 TYPICAL USAGE
 
-find /var/www -type f | ss --script 'rule \"Some issue\" (bodymask () \"substring1\" \"substring2\")'
+find /var/www -type f | ss -I 'rule \"bodymask () \"substring1\" \"substring2\")'
 
 You can add more config sources with option -r. Option can be repeated. Possible values:
 
@@ -87,15 +97,21 @@ rule \"Is PHP script\" is_php;;
 KNOWN OPTIONS
 " 
 
+
 let main () =
   let open Lwt in
   SSConfig.get !configReaders
   >>= fun scripts ->
-  let scripts = (SSConfig_sig.Virtual, "") :: scripts in
-  let script =
-    List.map (fun (domain, script) -> (SSConfig_sig.string_of_domain domain), script) scripts
-    |> SSScript.prepare
-  in
+  let lst = List.map (fun (domain, script) -> (SSConfig_sig.string_of_domain domain), script) scripts in
+  Lwt_list.iter_s (fun (domain, script) ->
+      try%lwt
+        SSExternalLoad.load_remote !compile_farm script
+      with
+      | SSExternalLoad.CompileError (msg, fatal) ->
+        Printf.eprintf "Failed to load script '%s':\n\n%s\n" domain msg;
+        exit 1
+    ) lst
+  >>= fun () ->
 
   let module IN_FORMAT = (val !ArgPipeFormat.input_format) in
   let module OUT_FORMAT = (val !ArgPipeFormat.output_format) in
@@ -111,14 +127,16 @@ let main () =
              ()
            else (
              try
-               let fileinfo = SSScript.fileinfo file.PipeFmtMain.Type.file in
+               let context = SSScript.context file.PipeFmtMain.Type.file in
                let has_output = ref false in
-               let register_output fileinfo alert =
-                 msgs := PipeFmtMain.Type.{ file with alert } :: !msgs;
+               let register_output stack alert =
+                 let open SSScript in
+                 msgs := PipeFmtMain.Type.{ file with alert; file = stack.current.filename } :: !msgs;
                  has_output := true;
                in
-               let queuefile_cb fileinfo filename =
-                 let dir = Filename.dirname fileinfo.SSScript.filename in
+               let queuefile_cb context_stack filename =
+                 let open SSScript in
+                 let dir = Filename.dirname context_stack.current.filename in
                  let file = Printf.sprintf "%s%s%s" dir Filename.dir_sep filename in
                  let file = PipeFmtMain.Type.{
                      file;
@@ -130,11 +148,12 @@ let main () =
                  in
                  check (rec_deepness+1) file
                in
+               
+               SSScript.External.set_notify register_output;
+               SSScript.External.set_queuefile queuefile_cb;
+               SSExternals.run file.PipeFmtMain.Type.file;
 
-               SSScript.run ~notify_cb:register_output ~queuefile_cb ~script fileinfo;
-
-               if not (PipeFmtMain.Type.file_is_empty file) || not !has_output then
-                 register_output fileinfo file.PipeFmtMain.Type.alert
+               register_output context file.PipeFmtMain.Type.alert
              with
              | _ ->
                (* file not found *)
@@ -149,13 +168,6 @@ let main () =
       | _ ->
         P.output pipe line
     ) pipe
-
-let main () =
-  let error_cb msg =
-    Printf.eprintf "%s\n" msg;
-    exit 1
-  in
-  ScriptParse.wrapped ~error_cb main
 
 let () =
   Arg.parse args (fun _ -> ()) usage;

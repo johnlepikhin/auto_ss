@@ -12,4 +12,4 @@ let register_regexp ~fname ~flags args =
   id
 
 let () = Ast_mapper.register "getenv"
-    (fun args -> AstMapper.my_mapper register_regexp)
+    (fun args -> AstMapper.my_mapper)
