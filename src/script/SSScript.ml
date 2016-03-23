@@ -1,5 +1,5 @@
 
-let version = 20
+let version = 21
 
 type body_regexp = {
   id : int;
@@ -16,8 +16,8 @@ type fileinfo = {
 }
 
 type context_stack = {
-  mutable current : fileinfo;
-  mutable stack : fileinfo list;
+  current : fileinfo;
+  stack : fileinfo list;
 }
 
 let readfile filename =
@@ -56,14 +56,12 @@ let context filename =
 
 module External =
 struct
-  let context_stack = ref (context "/")
 
   let _notify_cb = ref (fun (context : context_stack) (msg : string) -> ())
   let _queuefile_cb = ref (fun (context : context_stack) (next_file : string) -> ())
 
   let set_notify cb = _notify_cb := cb
   let set_queuefile cb = _queuefile_cb := cb
-  let set_context c = context_stack := c
   
   let notify s = (!_notify_cb) s
   let queue s = (!_queuefile_cb) s
@@ -79,7 +77,23 @@ struct
   let match_filemask rex context =
     Pcre.pmatch ~rex context.current.filename
 
-  let rule msg result =
-    if result then
-      notify !context_stack msg
+  let rule context msg condition =
+    if condition then
+      notify context msg
+
+  let queueif context file condition =
+    if condition then
+      (!_queuefile_cb) context file
+
+  let filesize context =
+    context.current.stat.Unix.LargeFile.st_size
+
+  let exists context fname =
+    let dir = Filename.dirname context.current.filename in
+    let file = Filename.concat dir fname in
+    Sys.file_exists file
+
+  let with_file context file fn =
+    let current = fileinfo file in
+    fn { current; stack = context.current :: context.stack }
 end

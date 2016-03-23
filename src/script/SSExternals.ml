@@ -16,7 +16,6 @@ let run filename =
   List.iter
     (fun m ->
        let module Member = (val m : MEMBER) in
-       SSScript.External.set_context context;
        Member.check context
     )
     !members

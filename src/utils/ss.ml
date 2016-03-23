@@ -21,78 +21,118 @@ let args = ArgPipeFormat.argsInOut @ Arg.[
 let usage = "
 TYPICAL USAGE
 
-find /var/www -type f | ss -I 'rule \"bodymask () \"substring1\" \"substring2\")'
+Fast check some rule on all files in /var/www:
 
-You can add more config sources with option -r. Option can be repeated. Possible values:
+find /var/www -type f | ss -I 'bodymask () \"substring1\" \"substring2\")'
+
+All rules are described using Ocaml syntax. There are different ways to
+pass configs to SS:
 
  * 'file:/path/to/file1:/path/to/file2:...'
-
-will sequentially read configs from specified files
-
  * 'dir:/path/to/dir1:/path/to/file2:...'
 
-will sequentially read configs from files in specified directories.
+Current template for new configs:
 
+==============================================
+open SSScript.External
 
-LANGUAGE DESRIPTION
+SSExternals.register (module (struct
+  let check context =
+    ...
+end))
+==============================================
 
-This is Ocaml with limited functions access and some DSL:
+Function 'notify' notifies scanner about issue in the context:
 
- * rule \"Always matched rule\" true;;
+notify context \"Virus Win32.CIH\"
 
-Rule witch will match on all files
+For example, notify about Win32.CIH in ALL files:
 
- * rule \"PHP files\" (filemask () \"php[345]?$\");;
+SSExternals.register (module (struct
+  let check context =
+    notify context \"Virus Win32.CIH\"
+end))
 
-Rule matching files which names matching regexp php[345]?$
+To match file names and content some special syntax available:
 
- * rule \"PHP files\" (filemask (i) \"php[345]?$\");;
+Return true if file name matches *.php:
+filemask () \"\\\\.php$\"
 
-The same but case-less
+Return true if file name matches *.php, *.PHP, ...:
+filemask (i) \"\\\\.php$\"
 
-Possible regexp flags are: i = caseless, m = multiline, s = dotall, x = extended, u = utf-8
-Flags are space-separated: filemask (i m s) \".*\"
+Return true if file content matches 'aaa':
+bodymask () \"aaa\"
 
- * rule \"PHP files\" (bodymask () \"<html>\");;
+Return true if file content matches 'privet' (UTF-8) in any russian charset:
+rusbodymask \"privet\"
 
-Rule matching files with bodies matching regexp \"<html>\"
+For example:
 
- * rule \"Russian substring\" (rusbodymask \"строка\")
+SSExternals.register (module (struct
+  let check context =
+    if rusbodymask \"privet\" then
+      notify context \"Russian hello\"
+end))
 
-Rule matching files with bodies matching regexp \"строка\" in charsets UTF-8,
-koi8-r, cp1251, cp866
+To make rules description simplier, use shortcut:
 
-OTHER targets
+rule context \"Virus Win32.CIH\" (<CONDITION>)
 
- * queuefile \"other/file/to/check.php\" condition
+For example:
 
-Adds into check queue specified if condition is true.
+SSExternals.register (module (struct
+  let check context =
+    rule context \"Russian hello\" (rusbodymask \"privet\")
+end))
 
-OTHER conditions
+One may specify as many checks as required separating it by semicolon:
 
- * exists \"file.php\"
+SSExternals.register (module (struct
+  let check context =
+    rule context \"Russian hello\" (rusbodymask \"privet\");
+    rule context \"English hello\" (bodymask (i) \"hello\");
+    rule context \"Mongolian hello\" (bodymask (i) \"sain baina uu\")
+end))
 
-Checks if file \"file.php\" exists (path is relative to current file)
+SSScript.External API:
 
- * filesize > 1000L
+(* [notify context message] notify about current context with message *)
+val notify: context -> string -> unit
 
-Checks if current file size > 1000 bytes
+(* [queue context filepath] queue specified path for full scan (all checks from all plugins will be applied) *)
+val queue: context -> string -> unit
 
+(* shortcut to notify + condition *)
+val rule: context -> string -> bool -> unit
 
-Boolean logic:
+(* shortcut to queue + condition *)
+val queueif: context -> string -> bool -> unit
 
- * rule \"Logic OR\" (true || false)
- * rule \"Logic AND\" (true && false)
- * rule \"Logic NOT\" (not false)
- * rule \"Extended logic\" (not false && true || (true or false))
+(* returns file size of context *)
+val filesize: context -> Int64.t
 
-Define constant:
+(* returns true if specified file exists. Path is relative to context *)
+val exists: context -> string -> bool
 
-let is_php = filemask (i) \"php[345]?$\";;
+(* [with_file context file fn] call function fn with context of file 'file' *)
+val with_file: context -> string -> (context -> unit) -> unit
 
-Use constant:
+CREATING NEW RULES USING LOW LEVEL API:
 
-rule \"Is PHP script\" is_php;;
+Function 'check' accepts argument of type 'context' as it's argument:
+
+type fileinfo = {
+  stat : Unix.LargeFile.stats;
+  filename : string;
+  body : string option lazy_t;
+}
+
+type context = {
+  mutable current : fileinfo;
+  mutable stack : fileinfo list;
+}
+
 " ^ ArgPipeFormat.usageInOut ^ "
 KNOWN OPTIONS
 " 
