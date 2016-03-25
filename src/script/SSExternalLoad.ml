@@ -48,14 +48,14 @@ let get_cmxs server script : string Lwt.t =
   with
     | Unix.Unix_error _ -> cfail ~fatal:false "Cannot get compiled module from compile farm"
 
-let save_cmxs data =
-  let (filename, ch) = Filename.open_temp_file ~mode:[Open_wronly; Open_binary; Open_creat; Open_excl] "SScriptGen" ".cmxs" in
+let save_cmxs ~temp_dir data =
+  let (filename, ch) = Filename.open_temp_file ~temp_dir ~mode:[Open_wronly; Open_binary; Open_creat; Open_excl] "SScriptGen" ".cmxs" in
   Unix.chmod filename 0o600;
   output_string ch data;
   close_out ch;
   filename
 
-let load_remote farm script =
+let load_remote ~farm ~temp_dir script =
   let open Lwt in
   let rec try_server = function
     | [] ->
@@ -63,7 +63,7 @@ let load_remote farm script =
     | server :: tl ->
       try%lwt
         let%lwt data = get_cmxs server script in
-        let file = save_cmxs data in
+        let file = save_cmxs ~temp_dir data in
         let%lwt () = load_cmxs file in
         Sys.remove file;
         Lwt.return ()

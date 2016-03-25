@@ -7,6 +7,8 @@ let compile_farm = ref [
     "127.0.0.1:800"
   ]
 
+let temp_dir = ref "/tmp"
+
 let set_compile_farm =
   let rex = Pcre.regexp "," in
   fun s ->
@@ -15,7 +17,8 @@ let set_compile_farm =
 let args = ArgPipeFormat.argsInOut @ Arg.[
     "-r", String (fun s -> configReaders := s :: !configReaders), "Add config new reader";
     "-I", String (fun _ -> ()), "Inline check with specified condition";
-    "-c", String set_compile_farm, "Location of compile farm. For example: 127.0.0.1:80,farm.localnet:8080 (default 127.0.0.1:800)"
+    "-c", String set_compile_farm, "Location of compile farm. For example: 127.0.0.1:80,farm.localnet:8080 (default 127.0.0.1:800)";
+    "-t", Set_string temp_dir, "Directory to store temporary files. Must be mounted with exec enabled!";
 ]
 
 let usage = "
@@ -145,7 +148,7 @@ let main () =
   let lst = List.map (fun (domain, script) -> (SSConfig_sig.string_of_domain domain), script) scripts in
   Lwt_list.iter_s (fun (domain, script) ->
       try%lwt
-        SSExternalLoad.load_remote !compile_farm script
+        SSExternalLoad.load_remote ~temp_dir:!temp_dir ~farm:!compile_farm script
       with
       | SSExternalLoad.CompileError (msg, fatal) ->
         Printf.eprintf "Failed to load script '%s':\n\n%s\n" domain msg;
