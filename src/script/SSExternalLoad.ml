@@ -50,6 +50,7 @@ let get_cmxs server script : string Lwt.t =
 
 let save_cmxs data =
   let (filename, ch) = Filename.open_temp_file ~mode:[Open_wronly; Open_binary; Open_creat; Open_excl] "SScriptGen" ".cmxs" in
+  Unix.chmod filename 0o600;
   output_string ch data;
   close_out ch;
   filename

@@ -78,7 +78,7 @@ Library ppx_ssscript
   FindlibName: ppx
   FindlibParent: ss_script
   XMETAExtraLines:  ppx = "ppx_ssscript"
-  XMETARequires: bitstring, compiler-libs.common
+  XMETARequires: compiler-libs.common
   BuildDepends: compiler-libs.common, iconv
 
 Executable ppx_ssscript
