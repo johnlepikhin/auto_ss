@@ -136,3 +136,9 @@ Executable ss_parallel
   MainIs: ss_parallel.ml
   BuildDepends: ss.common, typed_pipes.lwt
 
+Executable ss_compile_farm
+  Path: src/utils
+  Install: false
+  MainIs: ss_compile_farm.ml
+  BuildDepends: cohttp, cohttp.lwt, cryptokit
+  CompiledObject: best
