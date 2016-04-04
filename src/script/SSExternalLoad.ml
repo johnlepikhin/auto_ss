@@ -79,7 +79,8 @@ let load_remote ~farm ~temp_dir script =
         (function
           | (CompileError (_, true)) as exn ->
             Lwt.fail exn
-          | CompileError (_, false) ->
+          | CompileError (msg, false) ->
+            Printf.eprintf "Compilation error:\n\n%s\n" msg;
             try_server tl
           | exn ->
             Lwt.fail exn

@@ -15,11 +15,17 @@ struct
   let compile_path = ref "/tmp/ss_compile_farm"
 end
 
+module Env_Windows : ENV =
+struct
+  let compile_path = ref "c:/tmp/ss_compile_farm"
+end
+
 module Env =
   (val (
      let open Sys in
      match os_type with
      | "Unix" -> (module Env_UNIX : ENV)
+     | "Win32" -> (module Env_Windows : ENV)
      | _ -> failwith "Unsupported OS"
    )
   )
@@ -38,15 +44,33 @@ let readfile filename =
     let buf = Buffer.create readsize in
     let ch = open_in filename in
     try
-      Buffer.add_channel buf ch readsize;
+      let rbuf = Bytes.create 4096 in
+      let rec loop () =
+        let rd = input ch rbuf 0 4096 in
+        if rd = 0 then
+          ()
+        else (
+          Buffer.add_substring buf rbuf 0 rd;
+          loop ()
+        )
+      in
+      loop ();
       close_in ch;
       Some (Buffer.contents buf)
     with
-    | _ ->
+    | Unix.Unix_error (err, _, _) ->
+      let errmsg = Unix.error_message err in
+      Printf.eprintf "Cannot read CMXS: %s\n" errmsg;
       close_in ch;
       None
   with
-  | _ -> None
+  | Unix.Unix_error (err, _, _) ->
+    let errmsg = Unix.error_message err in
+    Printf.eprintf "Cannot open CMXS: %s\n" errmsg;
+    None
+  | exn ->
+    Printf.eprintf "Cannot open/read CMXS: %s\n" (Printexc.to_string exn);
+    None
 
 let savefile filename content =
   let ch = open_out filename in
@@ -58,7 +82,10 @@ let send_cmxs cmxs =
     let body = readfile cmxs in
     match body with
     | Some body -> body, 200
-    | None -> "Script compiled successfully but result cannot be read", 410
+    | None ->
+      let msg = "Script compiled successfully but result cannot be read" in
+      Printf.eprintf "Error: %s\n" msg;
+      msg, 410
   in
   Server.respond_string ~status:(`Code code) ~body ()
 
@@ -66,7 +93,7 @@ let compile fingerprint compile_path src =
   Sys.chdir compile_path;
   let script_name = Printf.sprintf "Script_%s" fingerprint in
   savefile (Printf.sprintf "%s.ml" script_name) src;
-  Printf.sprintf "ocamlbuild -use-ocamlfind -tag 'package(ss.script)' -tag 'package(ss.script.ppx)' -tag 'package(pcre)' %s.cmxs" script_name
+  Printf.sprintf "ocamlbuild -verbose 5 -use-ocamlfind -tags \"package(ss.script), package(ss.script.ppx), package(pcre)\" %s.cmxs" script_name
   |> Sys.command
   |> fun res ->
   match res with
@@ -78,7 +105,10 @@ let compile fingerprint compile_path src =
     let (body, code) =
       match body with
       | Some body -> body, 202
-      | None -> "Script compiled with errors and error log cannot be read", 404
+      | None ->
+        let msg = "Script compiled with errors and error log cannot be read" in
+        Printf.eprintf "Error: %s\n" msg;
+        msg, 404
     in
     Server.respond_string ~status:(`Code code) ~body ()
 
@@ -108,11 +138,15 @@ let server () =
       | None -> "0"
       | Some v -> v
     in
-    match meth, uri_path with
-    | "POST", "/compile" ->
-      body |> Cohttp_lwt_body.to_string >>= check_cache ~version
-    | _ ->
-      Server.respond_string ~status:(`Code 404) ~body:"Not found" ()
+    let r =
+      match meth, uri_path with
+      | "POST", "/compile" ->
+        body |> Cohttp_lwt_body.to_string >>= check_cache ~version
+      | _ ->
+        Server.respond_string ~status:(`Code 404) ~body:"Not found" ()
+    in
+    flush_all ();
+    r
   in
   Server.create ~mode:(`TCP (`Port !port)) (Server.make ~callback ())
 
