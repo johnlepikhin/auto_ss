@@ -10,7 +10,7 @@ Synopsis: Security Scanner
 Library ss
   FindlibName: ss
   Path: src
-  Modules: 
+  Modules: SSDummy
 
 Library pipeline
   FindlibName: pipeline
