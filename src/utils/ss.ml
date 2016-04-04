@@ -147,12 +147,17 @@ let main () =
   >>= fun scripts ->
   let lst = List.map (fun (domain, script) -> (SSConfig_sig.string_of_domain domain), script) scripts in
   Lwt_list.iter_s (fun (domain, script) ->
-      try%lwt
-        SSExternalLoad.load_remote ~temp_dir:!temp_dir ~farm:!compile_farm script
-      with
-      | SSExternalLoad.CompileError (msg, fatal) ->
-        Printf.eprintf "Failed to load script '%s':\n\n%s\n" domain msg;
-        exit 1
+      Lwt.catch
+        (fun () ->
+           SSExternalLoad.load_remote ~temp_dir:!temp_dir ~farm:!compile_farm script
+        )
+        (function
+          | SSExternalLoad.CompileError (msg, fatal) ->
+            Printf.eprintf "Failed to load script '%s':\n\n%s\n" domain msg;
+            exit 1
+          | exn ->
+            Lwt.fail exn
+        )
     ) lst
   >>= fun () ->
 

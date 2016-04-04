@@ -21,32 +21,37 @@ let get_cmxs server script : string Lwt.t =
   let open Cohttp in
   let open Cohttp_lwt_unix in
   let body = Cohttp_lwt_body.of_string script in
-  try%lwt
-    try
-      Printf.sprintf "http://%s/compile?ssscript_version=%i" server SSScript.version
-      |> Uri.of_string
-      |> Client.post ~body
-      >>= fun (response, body) ->
-      let status = Response.status response in
-      match status with
-      | `OK ->
-        Cohttp_lwt_body.to_string body
-      | `Internal_server_error ->
-        cfail ~fatal:false "Compile farm internal error"
-      | `Gone ->
-        cfail ~fatal:false "Cannot read result library"
-      | `Not_found ->
-        cfail ~fatal:false "Compilation failed and cannot read error log"
-      | `Accepted ->
-        let%lwt error = Cohttp_lwt_body.to_string body in
-        let msg = Printf.sprintf "Failed to compile: %s" error in
-        cfail ~fatal:true msg
-      | _ ->
-        cfail ~fatal:false "Other HTTP error"
-    with
-    | e -> Lwt.fail e
-  with
-    | Unix.Unix_error _ -> cfail ~fatal:false "Cannot get compiled module from compile farm"
+  Lwt.catch
+    (fun () ->
+       try
+         Printf.sprintf "http://%s/compile?ssscript_version=%i" server SSScript.version
+         |> Uri.of_string
+         |> Client.post ~body
+         >>= fun (response, body) ->
+         let status = Response.status response in
+         match status with
+         | `OK ->
+           Cohttp_lwt_body.to_string body
+         | `Internal_server_error ->
+           cfail ~fatal:false "Compile farm internal error"
+         | `Gone ->
+           cfail ~fatal:false "Cannot read result library"
+         | `Not_found ->
+           cfail ~fatal:false "Compilation failed and cannot read error log"
+         | `Accepted ->
+           Cohttp_lwt_body.to_string body
+           >>= fun error ->
+           let msg = Printf.sprintf "Failed to compile: %s" error in
+           cfail ~fatal:true msg
+         | _ ->
+           cfail ~fatal:false "Other HTTP error"
+       with
+       | e -> Lwt.fail e
+    )
+    (function
+      | Unix.Unix_error _ -> cfail ~fatal:false "Cannot get compiled module from compile farm"
+      | exn -> Lwt.fail exn
+    )
 
 let save_cmxs ~temp_dir data =
   let (filename, ch) = Filename.open_temp_file ~temp_dir ~mode:[Open_wronly; Open_binary; Open_creat; Open_excl] "SScriptGen" ".cmxs" in
@@ -61,16 +66,23 @@ let load_remote ~farm ~temp_dir script =
     | [] ->
       cfail ~fatal:true "All servers of compile farm are failed"
     | server :: tl ->
-      try%lwt
-        let%lwt data = get_cmxs server script in
-        let file = save_cmxs ~temp_dir data in
-        let%lwt () = load_cmxs file in
-        Sys.remove file;
-        Lwt.return ()
-      with
-      | (CompileError (_, true)) as exn ->
-        Lwt.fail exn
-      | CompileError (_, false) ->
-        try_server tl
+      Lwt.catch
+        (fun () ->
+           get_cmxs server script
+           >>= fun data ->
+           let file = save_cmxs ~temp_dir data in
+           load_cmxs file
+           >>= fun () ->
+           Sys.remove file;
+           Lwt.return ()
+        )
+        (function
+          | (CompileError (_, true)) as exn ->
+            Lwt.fail exn
+          | CompileError (_, false) ->
+            try_server tl
+          | exn ->
+            Lwt.fail exn
+        )
   in
   try_server farm
