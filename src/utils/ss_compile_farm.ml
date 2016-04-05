@@ -42,19 +42,19 @@ let readfile filename =
     let stat = stat filename in
     let readsize = stat.st_size in
     let buf = Buffer.create readsize in
-    let ch = open_in filename in
+    let ch = open_in_bin filename in
     try
       let rbuf = Bytes.create 4096 in
-      let rec loop () =
-        let rd = input ch rbuf 0 4096 in
+      let rec loop pos =
+        let rd = input ch rbuf pos 4096 in
         if rd = 0 then
           ()
         else (
           Buffer.add_substring buf rbuf 0 rd;
-          loop ()
+          loop (pos+rd)
         )
       in
-      loop ();
+      loop 0;
       close_in ch;
       Some (Buffer.contents buf)
     with

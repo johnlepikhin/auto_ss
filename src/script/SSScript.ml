@@ -27,7 +27,7 @@ let readfile filename =
       let stat = stat filename in
       let readsize = min 409600L stat.st_size |> Int64.to_int in
       let buf = Buffer.create readsize in
-      let ch = open_in filename in
+      let ch = open_in_bin filename in
       try
         Buffer.add_channel buf ch readsize;
         close_in ch;

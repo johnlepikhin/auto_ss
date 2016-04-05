@@ -73,7 +73,8 @@ let load_remote ~farm ~temp_dir script =
            let file = save_cmxs ~temp_dir data in
            load_cmxs file
            >>= fun () ->
-           Sys.remove file;
+           if Sys.os_type <> "Win32" then
+             Sys.remove file;
            Lwt.return ()
         )
         (function
