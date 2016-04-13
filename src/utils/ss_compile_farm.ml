@@ -46,7 +46,7 @@ let readfile filename =
     try
       let rbuf = Bytes.create 4096 in
       let rec loop pos =
-        let rd = input ch rbuf pos 4096 in
+        let rd = input ch rbuf 0 4096 in
         if rd = 0 then
           ()
         else (
