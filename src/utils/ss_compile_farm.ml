@@ -93,15 +93,15 @@ let compile fingerprint compile_path src =
   Sys.chdir compile_path;
   let script_name = Printf.sprintf "Script_%s" fingerprint in
   savefile (Printf.sprintf "%s.ml" script_name) src;
-  Printf.sprintf "ocamlbuild -verbose 5 -use-ocamlfind -tags \"package(ss.script), package(ss.script.ppx), package(pcre)\" %s.cmxs" script_name
+  Printf.sprintf "ocamlfind ocamlopt -verbose -shared -package ss.script -package ss.script.ppx -package pcre -o %s.cmxs %s.ml >./_log 2>&1" script_name script_name
   |> Sys.command
   |> fun res ->
   match res with
   | 0 ->
-    Printf.sprintf "_build/%s.cmxs" script_name
+    Printf.sprintf "%s.cmxs" script_name
     |> send_cmxs 
   | _ ->
-    let body = readfile "_build/_log" in
+    let body = readfile "_log" in
     let (body, code) =
       match body with
       | Some body -> body, 202
