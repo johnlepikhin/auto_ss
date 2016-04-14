@@ -24,27 +24,47 @@ let get_cmxs server script : string Lwt.t =
   Lwt.catch
     (fun () ->
        try
-         Printf.sprintf "http://%s/compile?ssscript_version=%i" server SSScript.version
-         |> Uri.of_string
-         |> Client.post ~body
-         >>= fun (response, body) ->
-         let status = Response.status response in
-         match status with
-         | `OK ->
-           Cohttp_lwt_body.to_string body
-         | `Internal_server_error ->
-           cfail ~fatal:false "Compile farm internal error"
-         | `Gone ->
-           cfail ~fatal:false "Cannot read result library"
-         | `Not_found ->
-           cfail ~fatal:false "Compilation failed and cannot read error log"
-         | `Accepted ->
-           Cohttp_lwt_body.to_string body
-           >>= fun error ->
-           let msg = Printf.sprintf "Failed to compile: %s" error in
-           cfail ~fatal:true msg
-         | _ ->
-           cfail ~fatal:false "Other HTTP error"
+         let raise_exn = ref true in
+         let t_getter =
+           Printf.sprintf "http://%s/compile?ssscript_version=%i" server SSScript.version
+           |> Uri.of_string
+           |> Client.post ~body
+           >>= fun (response, body) ->
+           let status = Response.status response in
+           match status with
+           | `OK ->
+             Cohttp_lwt_body.to_string body
+             >>= fun body ->
+             raise_exn := false;
+             Lwt.return body
+           | `Internal_server_error ->
+             raise_exn := false;
+             cfail ~fatal:false "Compile farm internal error"
+           | `Gone ->
+             raise_exn := false;
+             cfail ~fatal:false "Cannot read result library"
+           | `Not_found ->
+             raise_exn := false;
+             cfail ~fatal:false "Compilation failed and cannot read error log"
+           | `Accepted ->
+             Cohttp_lwt_body.to_string body
+             >>= fun error ->
+             raise_exn := false;
+             let msg = Printf.sprintf "Failed to compile: %s" error in
+             cfail ~fatal:true msg
+           | _ ->
+             raise_exn := false;
+             cfail ~fatal:false "Other HTTP error"
+         in
+         let t_timeout =
+           Lwt_unix.sleep 20.
+           >>= fun () ->
+           if !raise_exn then
+             cfail ~fatal:false "Timeout"
+           else
+             Lwt.return ""
+         in
+         t_getter <?> t_timeout
        with
        | e -> Lwt.fail e
     )
