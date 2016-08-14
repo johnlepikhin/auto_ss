@@ -71,6 +71,11 @@ Executable test_monitor_file_updates
   MainIs: test_monitorFileUpdates.ml
   BuildDepends: monitor_file_updates
 
+Executable test_cohttp
+  Path: tests
+  Install: false
+  MainIs: test_cohttp.ml
+  BuildDepends: cohttp, cohttp.lwt, cryptokit
 
 Library ppx_ssscript
   Path: src/utils
